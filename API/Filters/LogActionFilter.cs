@@ -1,4 +1,4 @@
-﻿using BLL.Abstract;
+﻿/*using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Config;
 using DTO.Logging;
@@ -55,4 +55,5 @@ public class LogActionFilter : IAsyncActionFilter
 
         await _loggingService.AddLogAsync(requestLog);
     }
-}
+}*/
+

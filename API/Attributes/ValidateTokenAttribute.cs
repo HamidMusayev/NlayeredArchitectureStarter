@@ -17,7 +17,7 @@ public class ValidateTokenAttribute : Attribute, IAuthorizationFilter
 
         var configSettings =
             (context.HttpContext.RequestServices
-            .GetService(typeof(ConfigSettings)) as ConfigSettings)!;
+                .GetService(typeof(ConfigSettings)) as ConfigSettings)!;
         var tokenService = (context.HttpContext.RequestServices
             .GetService(typeof(ITokenService)) as ITokenService)!;
         var utilService = (context.HttpContext.RequestServices

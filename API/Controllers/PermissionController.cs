@@ -1,5 +1,4 @@
 ﻿using API.Attributes;
-using API.Filters;
 using BLL.Abstract;
 using DTO.Permission;
 using DTO.Responses;
@@ -11,7 +10,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace API.Controllers;
 
 [Route("api/[controller]")]
-[ServiceFilter(typeof(LogActionFilter))]
+//[ServiceFilter(typeof(LogActionFilter))]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
 public class PermissionController : Controller

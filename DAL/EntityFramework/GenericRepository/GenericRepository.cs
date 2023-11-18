@@ -1,7 +1,7 @@
-﻿using DAL.EntityFramework.Context;
+﻿using System.Linq.Expressions;
+using DAL.EntityFramework.Context;
 using ENTITIES.Entities.Generic;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
 namespace DAL.EntityFramework.GenericRepository;
 

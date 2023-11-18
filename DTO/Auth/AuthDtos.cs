@@ -1,5 +1,5 @@
-﻿using DTO.User;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using DTO.User;
 
 namespace DTO.Auth;
 

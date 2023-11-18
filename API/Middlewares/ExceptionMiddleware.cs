@@ -1,4 +1,4 @@
-﻿using CORE.Config;
+﻿/*using CORE.Config;
 using CORE.Localization;
 using CORE.Logging;
 using DTO.Responses;
@@ -50,4 +50,5 @@ public class ExceptionMiddleware
         var response = new ErrorResult(Messages.GeneralError.Translate());
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));
     }
-}
+}*/
+

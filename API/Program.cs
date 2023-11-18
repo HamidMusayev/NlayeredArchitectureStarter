@@ -1,4 +1,6 @@
-﻿using API.Containers;
+﻿using System.Net;
+using System.Text.Json.Serialization;
+using API.Containers;
 using API.Filters;
 using API.Graphql.Role;
 using API.Hubs;
@@ -7,24 +9,28 @@ using API.Services;
 using BLL.Mappers;
 using CORE.Config;
 using CORE.Constants;
+using CORE.Localization;
 using DAL.EntityFramework.Context;
 using DTO.Auth.Validators;
+using DTO.Responses;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using GraphQL.Server.Ui.Voyager;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
-using WatchDog;
+using Nummy.ExceptionHandler.Extensions;
+using Nummy.ExceptionHandler.Models;
+using Nummy.HttpLogger.Extensions;
+using Nummy.HttpLogger.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Logging.AddWatchDogLogger();
+//builder.Logging.AddWatchDogLogger();
 
 builder.Services.RegisterLogger();
 
-builder.Services.RegisterWatchDog();
+//builder.Services.RegisterWatchDog();
 
 var config = new ConfigSettings();
 
@@ -86,7 +92,7 @@ builder.Services.AddCors(o => o
         .AllowAnyHeader()
         .AllowAnyOrigin()));
 
-builder.Services.AddScoped<LogActionFilter>();
+//builder.Services.AddScoped<LogActionFilter>();
 
 builder.Services.AddScoped<ModelValidatorActionFilter>();
 
@@ -97,6 +103,24 @@ if (config.SwaggerSettings.IsEnabled) builder.Services.RegisterSwagger(config);
 builder.Services.RegisterMiniProfiler();
 
 builder.Services.AddSignalR();
+
+builder.Services.AddNummyExceptionHandler(options =>
+{
+    options.ReturnResponseDuringException = true; // if false, the app throws exceptions as a normal
+    options.ResponseContentType = NummyResponseContentType.Json;
+    options.ResponseStatusCode = HttpStatusCode.BadRequest;
+    options.Response = new ErrorResult(Messages.GeneralError.Translate()); // or your custom object
+});
+
+builder.Services.AddNummyHttpLogger(options =>
+{
+    options.EnableRequestLogging = true;
+    options.EnableResponseLogging = true;
+    options.ExcludeContainingPaths = new[] { "api/user/login", "statistics", "user/create" };
+    options.DatabaseType = NummyHttpLoggerDatabaseType.PostgreSql;
+    options.DatabaseConnectionString =
+        "Host=localhost;Port=5432;Database=nummydb;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
+});
 
 //builder.Services.AddAntiforgery();
 
@@ -116,16 +140,18 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 app.UseCors(Constants.EnableAllCorsName);
 
 app.UseMiddleware<LocalizationMiddleware>();
-app.UseMiddleware<ExceptionMiddleware>();
+
+app.UseNummyExceptionHandler();
+app.UseNummyHttpLogger();
 
 app.UseOutputCache();
 app.UseHttpsRedirection();
 
-app.Use((context, next) =>
+/*app.Use((context, next) =>
 {
     context.Request.EnableBuffering();
     return next();
-});
+});*/
 
 // this will cause unexpected behaviour on watchdog's site
 /*app.Use(async (context, next) =>
@@ -141,8 +167,6 @@ app.Use((context, next) =>
 if (config.SentrySettings.IsEnabled) app.UseSentryTracing();
 
 app.UseStaticFiles();
-
-app.UseAuthorization();
 
 app.UseAuthentication();
 
@@ -168,9 +192,9 @@ app.UseGraphQLVoyager("/graphql-voyager", new VoyagerOptions
     GraphQLEndPoint = "/graphql"
 });
 
-app.UseWatchDogExceptionLogger();
+//app.UseWatchDogExceptionLogger();
 
-app.UseWatchDog(opt =>
+/*app.UseWatchDog(opt =>
 {
     opt.WatchPageUsername = "admin";
     opt.WatchPagePassword = "admin";
@@ -178,6 +202,6 @@ app.UseWatchDog(opt =>
     //opt.Blacklist = "Test/testPost, api/auth/login"; //Prevent logging for specified endpoints
     //opt.Serializer = WatchDogSerializerEnum.Newtonsoft; //If your project use a global json converter
     //opt.CorsPolicy = "MyCorsPolicy";
-});
+});*/
 
 app.Run();

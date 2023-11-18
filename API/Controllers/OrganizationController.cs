@@ -1,5 +1,4 @@
 ﻿using API.Attributes;
-using API.Filters;
 using DTO.Organization;
 using DTO.Responses;
 using MediatR;
@@ -14,7 +13,7 @@ using IResult = DTO.Responses.IResult;
 namespace API.Controllers;
 
 [Route("api/[controller]")]
-[ServiceFilter(typeof(LogActionFilter))]
+//[ServiceFilter(typeof(LogActionFilter))]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
 public class OrganizationController : Controller
@@ -48,6 +47,7 @@ public class OrganizationController : Controller
     [SwaggerOperation(Summary = "create organization")]
     [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IResult))]
     [HttpPost]
+    [AllowAnonymous]
     public async Task<IActionResult> Add([FromBody] OrganizationToAddDto request)
     {
         var response = await _mediator.Send(new AddOrganizationCommand(request));

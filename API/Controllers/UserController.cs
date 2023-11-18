@@ -1,5 +1,4 @@
 ﻿using API.Attributes;
-using API.Filters;
 using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Localization;
@@ -30,7 +29,6 @@ public class UserController : Controller
     [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<List<UserToListDto>>))]
     [HttpGet("paginate")]
     [ValidateToken]
-    [ServiceFilter(typeof(LogActionFilter))]
     public async Task<IActionResult> GetAsPaginated()
     {
         var response = await _userService.GetAsPaginatedListAsync();
@@ -41,14 +39,12 @@ public class UserController : Controller
     [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<List<UserToListDto>>))]
     [HttpGet]
     [ValidateToken]
-    [ServiceFilter(typeof(LogActionFilter))]
     public async Task<IActionResult> Get()
     {
         var response = await _userService.GetAsync();
         return Ok(response);
     }
 
-    [ServiceFilter(typeof(LogActionFilter))]
     [SwaggerOperation(Summary = "get profile info")]
     [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<List<UserToListDto>>))]
     [HttpGet("profile")]
@@ -66,7 +62,6 @@ public class UserController : Controller
     [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<UserToListDto>))]
     [HttpGet("{id}")]
     [ValidateToken]
-    [ServiceFilter(typeof(LogActionFilter))]
     public async Task<IActionResult> Get([FromRoute] int id)
     {
         var response = await _userService.GetAsync(id);
@@ -77,7 +72,6 @@ public class UserController : Controller
     [SwaggerOperation(Summary = "create user")]
     [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IResult))]
     [HttpPost("register")]
-    [ServiceFilter(typeof(LogActionFilter))]
     public async Task<IActionResult> Add([FromBody] UserToAddDto dto)
     {
         var response = await _userService.AddAsync(dto);
@@ -88,7 +82,6 @@ public class UserController : Controller
     [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IResult))]
     [HttpPut("{id}")]
     [ValidateToken]
-    [ServiceFilter(typeof(LogActionFilter))]
     public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UserToUpdateDto dto)
     {
         var response = await _userService.UpdateAsync(id, dto);
@@ -99,7 +92,6 @@ public class UserController : Controller
     [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IResult))]
     [HttpDelete("{id}")]
     [ValidateToken]
-    [ServiceFilter(typeof(LogActionFilter))]
     public async Task<IActionResult> Delete([FromRoute] int id)
     {
         var response = await _userService.SoftDeleteAsync(id);
