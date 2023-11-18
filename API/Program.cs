@@ -109,7 +109,7 @@ builder.Services.AddNummyExceptionHandler(options =>
     options.ReturnResponseDuringException = true; // if false, the app throws exceptions as a normal
     options.ResponseContentType = NummyResponseContentType.Json;
     options.ResponseStatusCode = HttpStatusCode.BadRequest;
-    options.Response = new ErrorResult(Messages.GeneralError.Translate()); // or your custom object
+    options.Response = new ErrorResult(Messages.GeneralError.Translate());
 });
 
 builder.Services.AddNummyHttpLogger(options =>
@@ -119,7 +119,7 @@ builder.Services.AddNummyHttpLogger(options =>
     options.ExcludeContainingPaths = new[] { "api/user/login", "statistics", "user/create" };
     options.DatabaseType = NummyHttpLoggerDatabaseType.PostgreSql;
     options.DatabaseConnectionString =
-        "Host=localhost;Port=5432;Database=nummydb;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
+        "Host=localhost;Port=5432;Database=nummy_db;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
 });
 
 //builder.Services.AddAntiforgery();
