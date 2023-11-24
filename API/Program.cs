@@ -112,7 +112,7 @@ builder.Services.AddNummyHttpLogger(options =>
 {
     options.EnableRequestLogging = true;
     options.EnableResponseLogging = true;
-    options.ExcludeContainingPaths = new[] { "api/user/login", "statistics", "user/create" };
+    options.ExcludeContainingPaths = new[] { "swaggger", "api/user/login", "user/create" };
     options.DatabaseType = NummyHttpLoggerDatabaseType.PostgreSql;
     options.DatabaseConnectionString =
         "Host=localhost;Port=5432;Database=nummy_db;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
