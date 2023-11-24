@@ -17,6 +17,8 @@ using GraphQL.Server.Ui.Voyager;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Nummy.CodeLogger.Extensions;
+using Nummy.CodeLogger.Models;
 using Nummy.ExceptionHandler.Extensions;
 using Nummy.ExceptionHandler.Models;
 using Nummy.HttpLogger.Extensions;
@@ -114,6 +116,13 @@ builder.Services.AddNummyHttpLogger(options =>
     options.DatabaseType = NummyHttpLoggerDatabaseType.PostgreSql;
     options.DatabaseConnectionString =
         "Host=localhost;Port=5432;Database=nummy_db;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
+});
+
+builder.Services.AddNummyCodeLogger(options =>
+{
+    options.DatabaseType = NummyCodeLoggerDatabaseType.PostgreSql;
+    options.DatabaseConnectionString = 
+    "Host=localhost;Port=5432;Database=nummy_db;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
 });
 
 //builder.Services.AddAntiforgery();
