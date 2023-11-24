@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Text.Json.Serialization;
-using API.Containers;
+﻿using API.Containers;
 using API.Filters;
 using API.Graphql.Role;
 using API.Hubs;
@@ -23,14 +21,10 @@ using Nummy.ExceptionHandler.Extensions;
 using Nummy.ExceptionHandler.Models;
 using Nummy.HttpLogger.Extensions;
 using Nummy.HttpLogger.Models;
+using System.Net;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-
-//builder.Logging.AddWatchDogLogger();
-
-builder.Services.RegisterLogger();
-
-//builder.Services.RegisterWatchDog();
 
 var config = new ConfigSettings();
 
@@ -191,17 +185,5 @@ app.UseGraphQLVoyager("/graphql-voyager", new VoyagerOptions
 {
     GraphQLEndPoint = "/graphql"
 });
-
-//app.UseWatchDogExceptionLogger();
-
-/*app.UseWatchDog(opt =>
-{
-    opt.WatchPageUsername = "admin";
-    opt.WatchPagePassword = "admin";
-    //Optional
-    //opt.Blacklist = "Test/testPost, api/auth/login"; //Prevent logging for specified endpoints
-    //opt.Serializer = WatchDogSerializerEnum.Newtonsoft; //If your project use a global json converter
-    //opt.CorsPolicy = "MyCorsPolicy";
-});*/
 
 app.Run();
