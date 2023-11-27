@@ -88,7 +88,7 @@ public class FileController : Controller
     [SwaggerOperation(Summary = "download file")]
     [Produces(typeof(void))]
     [HttpGet("download")]
-    public async Task<IActionResult> Download([FromQuery] string hashName, [FromQuery] FileType type)
+    public async Task<IActionResult> Download([FromQuery] string hashName)
     {
         // get file from database
         var fileResult = await _fileService.GetAsync(hashName);
@@ -104,7 +104,7 @@ public class FileController : Controller
     [HttpGet]
     [SwaggerOperation(Summary = "get file")]
     [Produces(typeof(void))]
-    public async Task<IActionResult> Get([FromQuery] string hashName, [FromQuery] FileType type)
+    public async Task<IActionResult> Get([FromQuery] string hashName)
     {
         // get file from database
         var fileResult = await _fileService.GetAsync(hashName);
