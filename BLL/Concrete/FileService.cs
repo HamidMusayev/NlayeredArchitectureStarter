@@ -62,7 +62,7 @@ public class FileService : IFileService
     public async Task<IDataResult<FileToListDto>> GetAsync(string hashName)
     {
         var data = await _unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName);
-        if(data is null) return new ErrorDataResult<FileToListDto>(Messages.DataNotFound.Translate());
+        if (data is null) return new ErrorDataResult<FileToListDto>(Messages.DataNotFound.Translate());
 
         var mapped = _mapper.Map<FileToListDto>(data);
 

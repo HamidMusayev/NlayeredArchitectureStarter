@@ -1,6 +1,6 @@
-﻿using ENTITIES.Entities.Generic;
+﻿using System.Linq.Expressions;
+using ENTITIES.Entities.Generic;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 
 namespace DAL.EntityFramework.Context;
 

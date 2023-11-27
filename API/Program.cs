@@ -1,4 +1,6 @@
-﻿using API.Containers;
+﻿using System.Net;
+using System.Text.Json.Serialization;
+using API.Containers;
 using API.Filters;
 using API.Graphql.Role;
 using API.Hubs;
@@ -23,8 +25,6 @@ using Nummy.ExceptionHandler.Extensions;
 using Nummy.ExceptionHandler.Models;
 using Nummy.HttpLogger.Extensions;
 using Nummy.HttpLogger.Models;
-using System.Net;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -121,8 +121,8 @@ builder.Services.AddNummyHttpLogger(options =>
 builder.Services.AddNummyCodeLogger(options =>
 {
     options.DatabaseType = NummyCodeLoggerDatabaseType.PostgreSql;
-    options.DatabaseConnectionString = 
-    "Host=localhost;Port=5432;Database=nummy_db;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
+    options.DatabaseConnectionString =
+        "Host=localhost;Port=5432;Database=nummy_db;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
 });
 
 //builder.Services.AddAntiforgery();
