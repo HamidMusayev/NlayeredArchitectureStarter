@@ -1,11 +1,7 @@
 ﻿using CORE.Abstract;
 using CORE.Config;
-using DTO.Sftp;
 using Microsoft.AspNetCore.Http;
 using Renci.SshNet;
-using Renci.SshNet.Sftp;
-using System.Drawing;
-using System.Drawing.Imaging;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 
 namespace CORE.Concrete;
@@ -19,113 +15,80 @@ public class SftpService : ISftpService
         _configSettings = configSettings;
     }
 
-    public List<DirectoryInformation> GetDirectoryInformation(string path)
-    {
-        if (string.IsNullOrEmpty(path) || string.IsNullOrWhiteSpace(path)) path = string.Empty;
-
-        var directoryInfos = new List<DirectoryInformation>();
-        var connectionInfo = GetConnectionInfo();
-        using (var sftp = new SftpClient(connectionInfo))
-        {
-            sftp.Connect();
-            if (!sftp.IsConnected) return directoryInfos.OrderBy(m => m.Name).ThenBy(m => !m.IsDirectory).ToList();
-
-            var realPath = ("/" + path).Replace("//", "/");
-            sftp.ChangeDirectory(realPath);
-            ICollection<ISftpFile> directories = sftp.ListDirectory(realPath).ToList();
-            directoryInfos.AddRange(from sftpFile in directories
-                                    let fileName = sftpFile.Name
-                                    let fileParts = fileName.Split('.')
-                                    where fileName != "." && fileName != ".."
-                                    let isAvaliable = sftpFile.IsDirectory || fileParts[^1] == "mp4"
-                                    where isAvaliable
-                                    let subDirectory = sftpFile.FullName.StartsWith("/") && sftpFile.FullName.Length > 0
-                                        ? sftpFile.FullName.Remove(0, 1)
-                                        : sftpFile.FullName
-                                    select new DirectoryInformation
-                                    {
-                                        Name = sftpFile.Name,
-                                        Length = sftpFile.Length.ToString(),
-                                        Path = subDirectory,
-                                        CreatedAt = sftpFile.LastWriteTime.ToString("dd-MMM-yyyy HH:mm"),
-                                        IsDirectory = sftpFile.IsDirectory
-                                    });
-        }
-
-        return directoryInfos.OrderBy(m => m.Name).ThenBy(m => !m.IsDirectory).ToList();
-    }
-
-    public void UploadFile(string filePath, string fileName, IFormFile formFile)
+    public void UploadFile(string folderPath, string fileName, IFormFile formFile)
     {
         var connectionInfo = GetConnectionInfo();
-        using var sftp = new SftpClient(connectionInfo);
-        sftp.Connect();
-        if (!sftp.IsConnected) return;
+        using var sftpClient = new SftpClient(connectionInfo);
 
-        sftp.ChangeDirectory(filePath);
+        sftpClient.Connect();
+        if (!sftpClient.IsConnected) return;
+
+        CreateDirectoryIfNotExists(sftpClient, folderPath);
+        sftpClient.ChangeDirectory(folderPath);
+
         using (var ms = new MemoryStream())
         {
             formFile.CopyTo(ms);
             var fileBytes = ms.ToArray();
-            sftp.WriteAllBytes(filePath + "/" + fileName, fileBytes);
+
+            var filePath = Path.Combine(folderPath, fileName);
+            sftpClient.WriteAllBytes(filePath, fileBytes);
         }
 
-        sftp.Disconnect();
+        sftpClient.Disconnect();
     }
 
-    public void DeleteFile(string filePath)
+    public void DeleteFile(string folderPath, string fileName)
     {
         var connectionInfo = GetConnectionInfo();
-        using var sftp = new SftpClient(connectionInfo);
-        sftp.Connect();
-        if (!sftp.IsConnected) return;
+        using var sftpClient = new SftpClient(connectionInfo);
 
-        sftp.ChangeDirectory(filePath);
+        sftpClient.Connect();
+        if (!sftpClient.IsConnected) return;
 
-        if (sftp.Exists(filePath)) sftp.Delete(filePath);
+        sftpClient.ChangeDirectory(folderPath);
+
+        var filePath = Path.Combine(folderPath, fileName);
+        if (sftpClient.Exists(filePath)) sftpClient.Delete(filePath);
     }
 
-    public byte[] ReadImage(string filePath)
+    public byte[] ReadFile(string folderPath, string fileName)
     {
-        var imageBytes = Array.Empty<byte>();
+        var fileBytes = Array.Empty<byte>();
 
         var connectionInfo = GetConnectionInfo();
-        using var sftp = new SftpClient(connectionInfo);
-        sftp.Connect();
-        if (!sftp.IsConnected) return imageBytes;
+        using var sftpClient = new SftpClient(connectionInfo);
 
-        sftp.ChangeDirectory(filePath);
+        sftpClient.Connect();
+        if (!sftpClient.IsConnected) return fileBytes;
 
-        if (string.IsNullOrEmpty(filePath)) return imageBytes;
+        sftpClient.ChangeDirectory(folderPath);
 
-        if (sftp.Exists(filePath))
-            imageBytes = sftp.ReadAllBytes(filePath);
+        var filePath = Path.Combine(folderPath, fileName);
+        fileBytes = sftpClient.ReadAllBytes(filePath);
 
-        return imageBytes;
-    }
-
-    public byte[] CompressImage(int jpegQuality, byte[] data)
-    {
-        if (!OperatingSystem.IsWindows())
-            throw new NotSupportedException("CompressImage function only works on windows platform");
-
-        using var inputStream = new MemoryStream(data);
-        using var image = Image.FromStream(inputStream);
-
-        var jpegEncoder = ImageCodecInfo.GetImageDecoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
-        var encoderParameters = new EncoderParameters(1);
-        encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, jpegQuality);
-
-        using var outputStream = new MemoryStream();
-        image.Save(outputStream, jpegEncoder, encoderParameters);
-
-        return outputStream.ToArray();
+        return fileBytes;
     }
 
     private ConnectionInfo GetConnectionInfo()
     {
-        return new ConnectionInfo(_configSettings.SftpSettings.Ip, _configSettings.SftpSettings.UserName,
-            new PasswordAuthenticationMethod(_configSettings.SftpSettings.UserName,
-                _configSettings.SftpSettings.Password));
+        var authMethod = new PasswordAuthenticationMethod
+        (
+            _configSettings.SftpSettings.UserName,
+            _configSettings.SftpSettings.Password
+        );
+
+        return new ConnectionInfo
+        (
+            _configSettings.SftpSettings.Ip,
+            _configSettings.SftpSettings.UserName,
+            authMethod
+        );
+    }
+
+    private static void CreateDirectoryIfNotExists(ISftpClient client, string folderPath)
+    {
+        if (!client.Exists(folderPath))
+            client.CreateDirectory(folderPath);
     }
 }

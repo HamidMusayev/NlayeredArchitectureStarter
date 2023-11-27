@@ -2,7 +2,6 @@
 using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Constants;
-using CORE.Helpers;
 using CORE.Localization;
 using DTO.File;
 using DTO.Responses;
@@ -23,14 +22,17 @@ public class FileController : Controller
 {
     private readonly IFileService _fileService;
     private readonly IUtilService _utilService;
+    private readonly ISftpService _sftpService;
 
     public FileController(
         IFileService fileService,
-        IUtilService utilService
+        IUtilService utilService,
+        ISftpService sftpService
     )
     {
         _fileService = fileService;
         _utilService = utilService;
+        _sftpService = sftpService;
     }
 
     [SwaggerOperation(Summary = "upload file")]
@@ -45,15 +47,18 @@ public class FileController : Controller
 
         // check extension
         if (!Constants.AllowedFileExtensions.Contains(fileExtension))
-            return BadRequest(new ErrorDataResult<string>(Messages.ThisFileTypeIsNotAllowed.Translate()));
+            return BadRequest(new ErrorDataResult<string>(message: Messages.ThisFileTypeIsNotAllowed.Translate()));
 
-        var path = _utilService.GetEnvFolderPath(_utilService.GetFolderName(dto.Type));
-        await FileHelper.WriteFile(dto.File, $"{hashFileName}{fileExtension}", path);
+        var path = dto.Type.ToString();
+        _sftpService.UploadFile(path, $"{hashFileName}{fileExtension}", dto.File);
+
+        // or
+        // var path = _utilService.GetEnvFolderPath(dto.Type.ToString());
+        // await FileHelper.WriteFile(dto.File, $"{hashFileName}{fileExtension}", path);
 
         // add to database
-        var result = await _fileService.AddFileAsync(
-            new FileToAddDto(originalFileName, hashFileName, fileExtension, dto.File.Length, path, dto.Type), dto);
-        if (!result.Success) return BadRequest(new ErrorDataResult<string>(Messages.InvalidModel.Translate()));
+        var fileToAdd = new FileToAddDto(originalFileName, hashFileName, fileExtension, dto.File.Length, path, dto.Type);
+        await _fileService.AddAsync(fileToAdd, dto);
 
         return Ok(new SuccessDataResult<string>(hashFileName, Messages.Success.Translate()));
     }
@@ -64,11 +69,18 @@ public class FileController : Controller
     public async Task<IActionResult> Delete([FromBody] FileRemoveRequestDto dto)
     {
         // delete file
-        var path = Path.Combine(_utilService.GetEnvFolderPath(_utilService.GetFolderName(dto.Type)), dto.HashName);
-        FileHelper.DeleteFile(path);
+        var fileResult = await _fileService.GetAsync(dto.HashName);
+        if (fileResult.Success) return BadRequest(fileResult);
+
+        _sftpService.DeleteFile(fileResult.Data!.Path!, $"{fileResult.Data.HashName}{fileResult.Data.Extension}");
+
+        // or
+        // var path = Path.Combine(_utilService.GetEnvFolderPath(dto.Type.ToString()), dto.HashName);
+        // FileHelper.DeleteFile(path);
 
         // remove from database
-        var result = await _fileService.RemoveFileAsync(dto);
+        var result = await _fileService.RemoveAsync(dto);
+
         return Ok(result);
     }
 
@@ -79,13 +91,14 @@ public class FileController : Controller
     public async Task<IActionResult> Download([FromQuery] string hashName, [FromQuery] FileType type)
     {
         // get file from database
-        var file = await _fileService.GetAsync(hashName);
+        var fileResult = await _fileService.GetAsync(hashName);
+        if(fileResult.Success) return BadRequest(fileResult);
 
         // read file as stream
-        var path = Path.Combine(_utilService.GetEnvFolderPath(_utilService.GetFolderName(type)),
-            $"{hashName}{file.Data!.Extension}");
+        var fileName = $"{fileResult.Data!.HashName}{fileResult.Data.Extension}";
+        var fileData = _sftpService.ReadFile(fileResult.Data!.Path!, fileName);
 
-        return PhysicalFile(path, "APPLICATION/octet-stream", Path.GetFileName(hashName));
+        return File(fileData, "APPLICATION/octet-stream", fileName);
     }
 
     [HttpGet]
@@ -94,12 +107,14 @@ public class FileController : Controller
     public async Task<IActionResult> Get([FromQuery] string hashName, [FromQuery] FileType type)
     {
         // get file from database
-        var file = await _fileService.GetAsync(hashName);
+        var fileResult = await _fileService.GetAsync(hashName);
 
         // read file as stream
-        var path = Path.Combine(_utilService.GetEnvFolderPath(_utilService.GetFolderName(type)),
-            $"{hashName}{file.Data!.Extension}");
-        var fileStream = System.IO.File.OpenRead(path);
+        var fileStream = _sftpService.ReadFile(fileResult.Data!.Path!, $"{fileResult.Data.HashName}{fileResult.Data.Extension}");
+
+        // or
+        // var path = Path.Combine(_utilService.GetEnvFolderPath(_utilService.GetFolderName(type)), $"{hashName}{file.Data!.Extension}");
+        // var fileStream = System.IO.File.OpenRead(path);
 
         if (fileStream is null) return BadRequest(new ErrorResult(Messages.FileIsNotFound.Translate()));
 

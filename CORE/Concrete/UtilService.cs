@@ -179,16 +179,6 @@ public class UtilService : IUtilService
         return roleIdClaim.Value;
     }
 
-    public string GetFolderName(FileType type)
-    {
-        return type switch
-        {
-            FileType.UserProfile => @"files\images\user_profile",
-            FileType.OrganizationLogo => @"files\images\organization_logo",
-            _ => "files/error"
-        };
-    }
-
     public string GetEnvFolderPath(string folderName)
     {
         return Path.Combine(_environment.WebRootPath, folderName);

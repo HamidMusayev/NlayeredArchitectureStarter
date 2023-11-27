@@ -22,7 +22,7 @@ public class FileService : IFileService
         _userService = userService;
     }
 
-    public async Task<IResult> AddFileAsync(FileToAddDto dto, FileUploadRequestDto requestDto)
+    public async Task<IResult> AddAsync(FileToAddDto dto, FileUploadRequestDto requestDto)
     {
         var fileId = await AddAsync(dto);
 
@@ -42,7 +42,7 @@ public class FileService : IFileService
         return new SuccessResult(Messages.Success.Translate());
     }
 
-    public async Task<IResult> RemoveFileAsync(FileRemoveRequestDto dto)
+    public async Task<IResult> RemoveAsync(FileRemoveRequestDto dto)
     {
         await SoftDeleteAsync(dto.HashName);
 
@@ -61,9 +61,12 @@ public class FileService : IFileService
 
     public async Task<IDataResult<FileToListDto>> GetAsync(string hashName)
     {
-        var data = _mapper.Map<FileToListDto>(await _unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName));
+        var data = await _unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName);
+        if(data is null) return new ErrorDataResult<FileToListDto>(Messages.DataNotFound.Translate());
 
-        return new SuccessDataResult<FileToListDto>(data, Messages.Success.Translate());
+        var mapped = _mapper.Map<FileToListDto>(data);
+
+        return new SuccessDataResult<FileToListDto>(mapped, Messages.Success.Translate());
     }
 
     private async Task<IDataResult<int>> AddAsync(FileToAddDto dto)
