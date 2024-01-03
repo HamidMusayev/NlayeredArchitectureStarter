@@ -26,4 +26,11 @@ public class HelperController(IToDoClient toDoClient, INummyCodeLoggerService nu
 
         return Ok();
     }
+
+    [HttpGet("nummy/test/exception/handle")]
+    [AllowAnonymous]
+    public async Task<IActionResult> NummyTestExceptionHandle()
+    {
+        throw new ArgumentNullException();
+    }
 }
