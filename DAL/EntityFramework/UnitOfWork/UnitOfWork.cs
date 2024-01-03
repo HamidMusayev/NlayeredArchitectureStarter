@@ -3,53 +3,28 @@ using DAL.EntityFramework.Context;
 
 namespace DAL.EntityFramework.UnitOfWork;
 
-public class UnitOfWork : IUnitOfWork
+public sealed class UnitOfWork(
+    DataContext dataContext,
+    IFileRepository fileRepository,
+    IOrganizationRepository organizationRepository,
+    IPermissionRepository permissionRepository,
+    IRoleRepository roleRepository,
+    ITokenRepository tokenRepository,
+    IUserRepository userRepository)
+    : IUnitOfWork
 {
-    private readonly DataContext _dataContext;
-
     private bool _isDisposed;
 
-    public UnitOfWork(
-        DataContext dataContext,
-        IErrorLogRepository errorLogRepository,
-        IFileRepository fileRepository,
-        INlogRepository nlogRepository,
-        IOrganizationRepository organizationRepository,
-        IPermissionRepository permissionRepository,
-        IRequestLogRepository requestLogRepository,
-        IResponseLogRepository responseLogRepository,
-        IRoleRepository roleRepository,
-        ITokenRepository tokenRepository,
-        IUserRepository userRepository
-    )
-    {
-        _dataContext = dataContext;
-        ErrorLogRepository = errorLogRepository;
-        FileRepository = fileRepository;
-        NlogRepository = nlogRepository;
-        OrganizationRepository = organizationRepository;
-        PermissionRepository = permissionRepository;
-        RequestLogRepository = requestLogRepository;
-        ResponseLogRepository = responseLogRepository;
-        RoleRepository = roleRepository;
-        TokenRepository = tokenRepository;
-        UserRepository = userRepository;
-    }
-
-    public IErrorLogRepository ErrorLogRepository { get; set; }
-    public IFileRepository FileRepository { get; set; }
-    public INlogRepository NlogRepository { get; set; }
-    public IOrganizationRepository OrganizationRepository { get; set; }
-    public IPermissionRepository PermissionRepository { get; set; }
-    public IRequestLogRepository RequestLogRepository { get; set; }
-    public IResponseLogRepository ResponseLogRepository { get; set; }
-    public IRoleRepository RoleRepository { get; set; }
-    public ITokenRepository TokenRepository { get; set; }
-    public IUserRepository UserRepository { get; set; }
+    public IFileRepository FileRepository { get; set; } = fileRepository;
+    public IOrganizationRepository OrganizationRepository { get; set; } = organizationRepository;
+    public IPermissionRepository PermissionRepository { get; set; } = permissionRepository;
+    public IRoleRepository RoleRepository { get; set; } = roleRepository;
+    public ITokenRepository TokenRepository { get; set; } = tokenRepository;
+    public IUserRepository UserRepository { get; set; } = userRepository;
 
     public async Task CommitAsync()
     {
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
     }
 
     public async ValueTask DisposeAsync()
@@ -70,13 +45,13 @@ public class UnitOfWork : IUnitOfWork
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
-        if (disposing) _dataContext.Dispose();
+        if (disposing) dataContext.Dispose();
     }
 
     private async ValueTask DisposeAsync(bool disposing)
     {
-        if (disposing) await _dataContext.DisposeAsync();
+        if (disposing) await dataContext.DisposeAsync();
     }
 }

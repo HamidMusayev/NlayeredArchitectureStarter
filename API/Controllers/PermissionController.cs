@@ -10,42 +10,34 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace API.Controllers;
 
 [Route("api/[controller]")]
-//[ServiceFilter(typeof(LogActionFilter))]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class PermissionController : Controller
+public class PermissionController(IPermissionService permissionService) : Controller
 {
-    private readonly IPermissionService _permissionService;
-
-    public PermissionController(IPermissionService permissionService)
-    {
-        _permissionService = permissionService;
-    }
-
     [SwaggerOperation(Summary = "get permissions as paginated list")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<List<PermissionToListDto>>))]
+    [Produces(typeof(IDataResult<List<PermissionToListDto>>))]
     [HttpGet("paginate")]
     public async Task<IActionResult> GetAsPaginated()
     {
-        var response = await _permissionService.GetAsPaginatedListAsync();
+        var response = await permissionService.GetAsPaginatedListAsync();
         return Ok(response);
     }
 
     [SwaggerOperation(Summary = "get permissions")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<List<PermissionToListDto>>))]
+    [Produces(typeof(IDataResult<List<PermissionToListDto>>))]
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        var response = await _permissionService.GetAsync();
+        var response = await permissionService.GetAsync();
         return Ok(response);
     }
 
     [SwaggerOperation(Summary = "get permission by id")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<PermissionToListDto>))]
+    [Produces(typeof(IDataResult<PermissionToListDto>))]
     [HttpGet("{id}")]
     public async Task<IActionResult> Get([FromRoute] Guid id)
     {
-        var response = await _permissionService.GetAsync(id);
+        var response = await permissionService.GetAsync(id);
         return Ok(response);
     }
 
@@ -53,7 +45,7 @@ public class PermissionController : Controller
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] PermissionToAddDto dto)
     {
-        var response = await _permissionService.AddAsync(dto);
+        var response = await permissionService.AddAsync(dto);
         return Ok(response);
     }
 
@@ -62,7 +54,7 @@ public class PermissionController : Controller
     public async Task<IActionResult> Update([FromRoute] Guid id,
         [FromBody] PermissionToUpdateDto dto)
     {
-        var response = await _permissionService.UpdateAsync(id, dto);
+        var response = await permissionService.UpdateAsync(id, dto);
         return Ok(response);
     }
 
@@ -70,7 +62,7 @@ public class PermissionController : Controller
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
-        var response = await _permissionService.SoftDeleteAsync(id);
+        var response = await permissionService.SoftDeleteAsync(id);
         return Ok(response);
     }
 }

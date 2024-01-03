@@ -29,11 +29,6 @@ namespace API.Containers;
 
 public static class DependencyContainer
 {
-    public static void RegisterLogger(this IServiceCollection services)
-    {
-        services.TryAddSingleton<ILoggerManager, LoggerManager>();
-    }
-
     public static void RegisterAuthentication(this IServiceCollection services, ConfigSettings config)
     {
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

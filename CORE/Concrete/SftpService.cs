@@ -6,15 +6,8 @@ using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 
 namespace CORE.Concrete;
 
-public class SftpService : ISftpService
+public class SftpService(ConfigSettings configSettings) : ISftpService
 {
-    private readonly ConfigSettings _configSettings;
-
-    public SftpService(ConfigSettings configSettings)
-    {
-        _configSettings = configSettings;
-    }
-
     public void UploadFile(string folderPath, string fileName, IFormFile formFile)
     {
         var connectionInfo = GetConnectionInfo();
@@ -74,14 +67,14 @@ public class SftpService : ISftpService
     {
         var authMethod = new PasswordAuthenticationMethod
         (
-            _configSettings.SftpSettings.UserName,
-            _configSettings.SftpSettings.Password
+            configSettings.SftpSettings.UserName,
+            configSettings.SftpSettings.Password
         );
 
         return new ConnectionInfo
         (
-            _configSettings.SftpSettings.Ip,
-            _configSettings.SftpSettings.UserName,
+            configSettings.SftpSettings.Ip,
+            configSettings.SftpSettings.UserName,
             authMethod
         );
     }

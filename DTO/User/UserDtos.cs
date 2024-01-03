@@ -4,8 +4,7 @@ using DTO.Role;
 
 namespace DTO.User;
 
-public record UserToAddDto
-(
+public record UserToAddDto(
     string Username,
     string Email,
     string ContactNumber,
@@ -17,8 +16,7 @@ public record UserToAddDto
     Guid? RoleId
 );
 
-public record UserToListDto
-(
+public record UserToListDto(
     Guid Id,
     string Username,
     string Email,
@@ -27,8 +25,7 @@ public record UserToListDto
     FileToListDto? ProfileFile
 );
 
-public record UserToUpdateDto
-(
+public record UserToUpdateDto(
     string Email,
     string ContactNumber,
     string Username,

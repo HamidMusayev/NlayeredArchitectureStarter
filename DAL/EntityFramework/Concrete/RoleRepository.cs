@@ -6,15 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.EntityFramework.Concrete;
 
-public class RoleRepository : GenericRepository<Role>, IRoleRepository
+public class RoleRepository(DataContext dataContext) : GenericRepository<Role>(dataContext), IRoleRepository
 {
-    private readonly DataContext _dataContext;
-
-    public RoleRepository(DataContext dataContext)
-        : base(dataContext)
-    {
-        _dataContext = dataContext;
-    }
+    private readonly DataContext _dataContext = dataContext;
 
     public Role UpdateRole(Role role)
     {

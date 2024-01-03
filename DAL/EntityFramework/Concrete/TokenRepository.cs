@@ -6,15 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.EntityFramework.Concrete;
 
-public class TokenRepository : GenericRepository<Token>, ITokenRepository
+public class TokenRepository(DataContext dataContext) : GenericRepository<Token>(dataContext), ITokenRepository
 {
-    private readonly DataContext _dataContext;
-
-    public TokenRepository(DataContext dataContext)
-        : base(dataContext)
-    {
-        _dataContext = dataContext;
-    }
+    private readonly DataContext _dataContext = dataContext;
 
     public async Task<bool> IsValid(string accessToken, string refreshToken)
     {

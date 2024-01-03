@@ -5,13 +5,8 @@ using ENTITIES.Entities;
 
 namespace DAL.EntityFramework.Concrete;
 
-public class OrganizationRepository : GenericRepository<Organization>, IOrganizationRepository
+public class OrganizationRepository(DataContext dataContext)
+    : GenericRepository<Organization>(dataContext), IOrganizationRepository
 {
-    private readonly DataContext _dataContext;
-
-    public OrganizationRepository(DataContext dataContext)
-        : base(dataContext)
-    {
-        _dataContext = dataContext;
-    }
+    private readonly DataContext _dataContext = dataContext;
 }

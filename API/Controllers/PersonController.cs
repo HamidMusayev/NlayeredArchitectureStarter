@@ -11,19 +11,11 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace API.Controllers;
 
 [Route("api/[controller]")]
-//[ServiceFilter(typeof(LogActionFilter))]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class PersonController : Controller
+public class PersonController(RedisConnectionProvider provider) : Controller
 {
-    private readonly RedisCollection<Person> _collection;
-    private readonly RedisConnectionProvider _provider;
-
-    public PersonController(RedisConnectionProvider provider)
-    {
-        _provider = provider;
-        _collection = (RedisCollection<Person>)provider.RedisCollection<Person>();
-    }
+    private readonly RedisCollection<Person> _collection = (RedisCollection<Person>)provider.RedisCollection<Person>();
 
     [SwaggerOperation(Summary = "add person to redis")]
     [SwaggerResponse(StatusCodes.Status200OK)]
@@ -119,7 +111,7 @@ public class PersonController : Controller
     [HttpDelete("{id}")]
     public IActionResult DeletePerson([FromRoute] string id)
     {
-        _provider.Connection.Unlink($"Person:{id}");
+        provider.Connection.Unlink($"Person:{id}");
         return Ok(new SuccessResult());
     }
 }

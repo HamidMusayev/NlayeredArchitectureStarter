@@ -9,19 +9,9 @@ using File = ENTITIES.Entities.File;
 
 namespace BLL.Concrete;
 
-public class FileService : IFileService
+public class FileService(IUnitOfWork unitOfWork, IMapper mapper, IUserService userService)
+    : IFileService
 {
-    private readonly IMapper _mapper;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IUserService _userService;
-
-    public FileService(IUnitOfWork unitOfWork, IMapper mapper, IUserService userService)
-    {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
-        _userService = userService;
-    }
-
     public async Task<IResult> AddAsync(FileToAddDto dto, FileUploadRequestDto requestDto)
     {
         var fileId = await AddAsync(dto);
@@ -29,7 +19,7 @@ public class FileService : IFileService
         switch (dto.Type)
         {
             case FileType.UserProfile:
-                await _userService.AddProfileAsync(requestDto.UserId!.Value, fileId.Data);
+                await userService.AddProfileAsync(requestDto.UserId!.Value, fileId.Data);
                 break;
             case FileType.OrganizationLogo:
                 // because of organization services are in mediatr
@@ -49,7 +39,7 @@ public class FileService : IFileService
         switch (dto.Type)
         {
             case FileType.UserProfile:
-                await _userService.AddProfileAsync(dto.UserId!.Value, null);
+                await userService.AddProfileAsync(dto.UserId!.Value, null);
                 break;
             case FileType.OrganizationLogo:
                 //await _organizationService.AddProfileAsync(userId!.Value, null);
@@ -61,30 +51,30 @@ public class FileService : IFileService
 
     public async Task<IDataResult<FileToListDto>> GetAsync(string hashName)
     {
-        var data = await _unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName);
+        var data = await unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName);
         if (data is null) return new ErrorDataResult<FileToListDto>(Messages.DataNotFound.Translate());
 
-        var mapped = _mapper.Map<FileToListDto>(data);
+        var mapped = mapper.Map<FileToListDto>(data);
 
         return new SuccessDataResult<FileToListDto>(mapped, Messages.Success.Translate());
     }
 
     private async Task<IDataResult<Guid>> AddAsync(FileToAddDto dto)
     {
-        var data = _mapper.Map<File>(dto);
+        var data = mapper.Map<File>(dto);
 
-        var added = await _unitOfWork.FileRepository.AddAsync(data);
-        await _unitOfWork.CommitAsync();
+        var added = await unitOfWork.FileRepository.AddAsync(data);
+        await unitOfWork.CommitAsync();
 
         return new SuccessDataResult<Guid>(added.Id, Messages.Success.Translate());
     }
 
     private async Task<IResult> SoftDeleteAsync(string hashName)
     {
-        var data = await _unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName);
+        var data = await unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName);
 
-        _unitOfWork.FileRepository.SoftDelete(data!);
-        await _unitOfWork.CommitAsync();
+        unitOfWork.FileRepository.SoftDelete(data!);
+        await unitOfWork.CommitAsync();
 
         return new SuccessResult(Messages.Success.Translate());
     }

@@ -6,22 +6,14 @@ using REFITS.Clients;
 namespace API.Controllers;
 
 [Route("api/[controller]")]
-//[ServiceFilter(typeof(LogActionFilter))]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class HelperController : Controller
+public class HelperController(IToDoClient toDoClient) : Controller
 {
-    private readonly IToDoClient _toDoClient;
-
-    public HelperController(IToDoClient toDoClient)
-    {
-        _toDoClient = toDoClient;
-    }
-
-    [HttpGet("test")]
+    [HttpGet("refit/test/todo/get")]
     [AllowAnonymous]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> RefitTestTodoGet()
     {
-        var response = await _toDoClient.Get();
+        var response = await toDoClient.Get();
         return Ok(response);
     }
 }

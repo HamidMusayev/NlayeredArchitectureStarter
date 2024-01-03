@@ -2,8 +2,7 @@
 
 namespace DTO.Token;
 
-public record TokenToListDto
-(
+public record TokenToListDto(
     Guid TokenId,
     UserToListDto User,
     string AccessToken,

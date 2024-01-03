@@ -2,6 +2,7 @@
 using ENTITIES.Entities;
 using ENTITIES.Enums;
 using Microsoft.EntityFrameworkCore;
+
 namespace DAL.EntityFramework.Seeds;
 
 public static class RoleSeed

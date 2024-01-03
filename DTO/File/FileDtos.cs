@@ -3,8 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace DTO.File;
 
-public record FileToListDto
-(
+public record FileToListDto(
     Guid Id,
     string OriginalName,
     string HashName,
@@ -14,8 +13,7 @@ public record FileToListDto
     FileType Type
 );
 
-public record FileToAddDto
-(
+public record FileToAddDto(
     string OriginalName,
     string HashName,
     string Extension,
@@ -25,16 +23,14 @@ public record FileToAddDto
 );
 
 //add validator for this class
-public record FileUploadRequestDto
-(
+public record FileUploadRequestDto(
     IFormFile File,
     FileType Type,
     Guid? UserId,
     Guid? OrganizationId
 );
 
-public record FileRemoveRequestDto
-(
+public record FileRemoveRequestDto(
     string HashName,
     FileType Type,
     Guid? UserId,

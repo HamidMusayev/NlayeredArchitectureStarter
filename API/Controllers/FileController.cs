@@ -17,20 +17,10 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class FileController : Controller
+public class FileController(
+    IFileService fileService,
+    ISftpService sftpService) : Controller
 {
-    private readonly IFileService _fileService;
-    private readonly ISftpService _sftpService;
-
-    public FileController(
-        IFileService fileService,
-        ISftpService sftpService
-    )
-    {
-        _fileService = fileService;
-        _sftpService = sftpService;
-    }
-
     [SwaggerOperation(Summary = "upload file")]
     [Produces(typeof(IDataResult<string>))]
     [HttpPost]
@@ -46,7 +36,7 @@ public class FileController : Controller
             return BadRequest(new ErrorDataResult<string>(Messages.ThisFileTypeIsNotAllowed.Translate()));
 
         var path = dto.Type.ToString();
-        _sftpService.UploadFile(path, $"{hashFileName}{fileExtension}", dto.File);
+        sftpService.UploadFile(path, $"{hashFileName}{fileExtension}", dto.File);
 
         // or
         // var path = _utilService.GetEnvFolderPath(dto.Type.ToString());
@@ -55,7 +45,7 @@ public class FileController : Controller
         // add to database
         var fileToAdd =
             new FileToAddDto(originalFileName, hashFileName, fileExtension, dto.File.Length, path, dto.Type);
-        await _fileService.AddAsync(fileToAdd, dto);
+        await fileService.AddAsync(fileToAdd, dto);
 
         return Ok(new SuccessDataResult<string>(hashFileName, Messages.Success.Translate()));
     }
@@ -66,17 +56,17 @@ public class FileController : Controller
     public async Task<IActionResult> Delete([FromBody] FileRemoveRequestDto dto)
     {
         // delete file
-        var fileResult = await _fileService.GetAsync(dto.HashName);
+        var fileResult = await fileService.GetAsync(dto.HashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
-        _sftpService.DeleteFile(fileResult.Data!.Path!, $"{fileResult.Data.HashName}{fileResult.Data.Extension}");
+        sftpService.DeleteFile(fileResult.Data!.Path!, $"{fileResult.Data.HashName}{fileResult.Data.Extension}");
 
         // or
         // var path = Path.Combine(_utilService.GetEnvFolderPath(dto.Type.ToString()), dto.HashName);
         // FileHelper.DeleteFile(path);
 
         // remove from database
-        var result = await _fileService.RemoveAsync(dto);
+        var result = await fileService.RemoveAsync(dto);
 
         return Ok(result);
     }
@@ -88,12 +78,12 @@ public class FileController : Controller
     public async Task<IActionResult> Download([FromQuery] string hashName)
     {
         // get file from database
-        var fileResult = await _fileService.GetAsync(hashName);
+        var fileResult = await fileService.GetAsync(hashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
         // read file as stream
         var fileName = $"{fileResult.Data!.HashName}{fileResult.Data.Extension}";
-        var fileData = _sftpService.ReadFile(fileResult.Data!.Path!, fileName);
+        var fileData = sftpService.ReadFile(fileResult.Data!.Path!, fileName);
 
         return File(fileData, "APPLICATION/octet-stream", fileName);
     }
@@ -104,12 +94,12 @@ public class FileController : Controller
     public async Task<IActionResult> Get([FromQuery] string hashName)
     {
         // get file from database
-        var fileResult = await _fileService.GetAsync(hashName);
+        var fileResult = await fileService.GetAsync(hashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
         // read file as stream
         var fileName = $"{fileResult.Data!.HashName}{fileResult.Data.Extension}";
-        var fileStream = _sftpService.ReadFile(fileResult.Data!.Path!, fileName);
+        var fileStream = sftpService.ReadFile(fileResult.Data!.Path!, fileName);
 
         // or
         // var path = Path.Combine(_utilService.GetEnvFolderPath(_utilService.GetFolderName(type)), $"{hashName}{file.Data!.Extension}");

@@ -11,69 +11,61 @@ using IResult = DTO.Responses.IResult;
 namespace API.Controllers;
 
 [Route("api/[controller]")]
-//[ServiceFilter(typeof(LogActionFilter))]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class RoleController : Controller
+public class RoleController(IRoleService roleService) : Controller
 {
-    private readonly IRoleService _roleService;
-
-    public RoleController(IRoleService roleService)
-    {
-        _roleService = roleService;
-    }
-
     [SwaggerOperation(Summary = "get roles")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<List<RoleToListDto>>))]
+    [Produces(typeof(IDataResult<List<RoleToListDto>>))]
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        var response = await _roleService.GetAsync();
+        var response = await roleService.GetAsync();
         return Ok(response);
     }
 
     [SwaggerOperation(Summary = "get role")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<RoleToListDto>))]
+    [Produces(typeof(IDataResult<RoleToListDto>))]
     [HttpGet("{id}")]
     public async Task<IActionResult> Get([FromRoute] Guid id)
     {
-        var response = await _roleService.GetAsync(id);
+        var response = await roleService.GetAsync(id);
         return Ok(response);
     }
 
     [SwaggerOperation(Summary = "get role permissions")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IDataResult<RoleToListDto>))]
+    [Produces(typeof(IDataResult<RoleToListDto>))]
     [HttpGet("{id}/permissions")]
     public async Task<IActionResult> GetRolePermissions([FromRoute] Guid id)
     {
-        var response = await _roleService.GetPermissionsAsync(id);
+        var response = await roleService.GetPermissionsAsync(id);
         return Ok(response);
     }
 
     [SwaggerOperation(Summary = "create role")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IResult))]
+    [Produces(typeof(IResult))]
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] RoleToAddDto dto)
     {
-        var response = await _roleService.AddAsync(dto);
+        var response = await roleService.AddAsync(dto);
         return Ok(response);
     }
 
     [SwaggerOperation(Summary = "update role")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IResult))]
+    [Produces(typeof(IResult))]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] RoleToUpdateDto dto)
     {
-        var response = await _roleService.UpdateAsync(id, dto);
+        var response = await roleService.UpdateAsync(id, dto);
         return Ok(response);
     }
 
     [SwaggerOperation(Summary = "delete role")]
-    [SwaggerResponse(StatusCodes.Status200OK, type: typeof(IResult))]
+    [Produces(typeof(IResult))]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
-        var response = await _roleService.SoftDeleteAsync(id);
+        var response = await roleService.SoftDeleteAsync(id);
         return Ok(response);
     }
 }

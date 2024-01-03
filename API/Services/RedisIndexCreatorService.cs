@@ -3,18 +3,11 @@ using Redis.OM;
 
 namespace API.Services;
 
-public class RedisIndexCreatorService : IHostedService
+public class RedisIndexCreatorService(RedisConnectionProvider provider) : IHostedService
 {
-    private readonly RedisConnectionProvider _provider;
-
-    public RedisIndexCreatorService(RedisConnectionProvider provider)
-    {
-        _provider = provider;
-    }
-
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _provider.Connection.CreateIndexAsync(typeof(Person));
+        await provider.Connection.CreateIndexAsync(typeof(Person));
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

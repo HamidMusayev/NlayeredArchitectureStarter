@@ -12,29 +12,19 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CORE.Concrete;
 
-public class UtilService : IUtilService
+public class UtilService(ConfigSettings config, IHttpContextAccessor context, IWebHostEnvironment environment)
+    : IUtilService
 {
-    private readonly ConfigSettings _config;
-    private readonly IHttpContextAccessor _context;
-    private readonly IWebHostEnvironment _environment;
-
-    public UtilService(ConfigSettings config, IHttpContextAccessor context, IWebHostEnvironment environment)
-    {
-        _config = config;
-        _context = context;
-        _environment = environment;
-    }
-
     public string? GetTokenString()
     {
-        return _context.HttpContext?.Request.Headers[_config.AuthSettings.HeaderName].ToString();
+        return context.HttpContext?.Request.Headers[config.AuthSettings.HeaderName].ToString();
     }
 
     public Guid? GetUserIdFromToken()
     {
         var token = GetJwtSecurityToken();
         if (token == null) return null;
-        var userId = Decrypt(token.Claims.First(c => c.Type == _config.AuthSettings.TokenUserIdKey).Value);
+        var userId = Decrypt(token.Claims.First(c => c.Type == config.AuthSettings.TokenUserIdKey).Value);
         return Guid.Parse(userId);
     }
 
@@ -43,7 +33,7 @@ public class UtilService : IUtilService
         var token = GetJwtSecurityToken();
         if (token is null) return null;
 
-        var companyIdClaim = token.Claims.First(c => c.Type == _config.AuthSettings.TokenCompanyIdKey);
+        var companyIdClaim = token.Claims.First(c => c.Type == config.AuthSettings.TokenCompanyIdKey);
 
         if (companyIdClaim is null || string.IsNullOrEmpty(companyIdClaim.Value)) return null;
 
@@ -57,7 +47,7 @@ public class UtilService : IUtilService
         if (string.IsNullOrEmpty(tokenString) || tokenString.Length < 7) return false;
 
         var tokenHandler = new JwtSecurityTokenHandler();
-        var secretKey = Encoding.ASCII.GetBytes(_config.AuthSettings.SecretKey);
+        var secretKey = Encoding.ASCII.GetBytes(config.AuthSettings.SecretKey);
         try
         {
             tokenHandler.ValidateToken(tokenString[7..], new TokenValidationParameters
@@ -96,8 +86,8 @@ public class UtilService : IUtilService
 
     public string Encrypt(string value)
     {
-        var key = _config.CryptographySettings.KeyBase64;
-        var privatekey = _config.CryptographySettings.VBase64;
+        var key = config.CryptographySettings.KeyBase64;
+        var privatekey = config.CryptographySettings.VBase64;
         var privatekeyByte = Encoding.UTF8.GetBytes(privatekey);
         var keybyte = Encoding.UTF8.GetBytes(key);
         SymmetricAlgorithm algorithm = Aes.Create();
@@ -109,8 +99,8 @@ public class UtilService : IUtilService
 
     public string Decrypt(string value)
     {
-        var key = _config.CryptographySettings.KeyBase64;
-        var privatekey = _config.CryptographySettings.VBase64;
+        var key = config.CryptographySettings.KeyBase64;
+        var privatekey = config.CryptographySettings.VBase64;
         var privatekeyByte = Encoding.UTF8.GetBytes(privatekey);
         var keybyte = Encoding.UTF8.GetBytes(key);
         SymmetricAlgorithm algorithm = Aes.Create();
@@ -124,22 +114,22 @@ public class UtilService : IUtilService
     {
         if (!string.IsNullOrEmpty(email) && email.Contains('@'))
         {
-            var fromAddress = new MailAddress(_config.MailSettings.Address, _config.MailSettings.DisplayName);
+            var fromAddress = new MailAddress(config.MailSettings.Address, config.MailSettings.DisplayName);
             var toAddress = new MailAddress(email, email);
 
             var smtp = new SmtpClient
             {
-                Host = _config.MailSettings.Host,
-                Port = int.Parse(_config.MailSettings.Port),
+                Host = config.MailSettings.Host,
+                Port = int.Parse(config.MailSettings.Port),
                 EnableSsl = false,
                 DeliveryMethod = SmtpDeliveryMethod.Network,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(fromAddress.Address, _config.MailSettings.MailKey)
+                Credentials = new NetworkCredential(fromAddress.Address, config.MailSettings.MailKey)
             };
 
             using var data = new MailMessage(fromAddress, toAddress)
             {
-                Subject = _config.MailSettings.Subject,
+                Subject = config.MailSettings.Subject,
                 Body = message
             };
 
@@ -149,8 +139,8 @@ public class UtilService : IUtilService
 
     public PaginationDto GetPagination()
     {
-        var pageIndex = Convert.ToInt32(_context.HttpContext?.Request.Headers[_config.RequestSettings.PageIndex]);
-        var pageSize = Convert.ToInt32(_context.HttpContext?.Request.Headers[_config.RequestSettings.PageSize]);
+        var pageIndex = Convert.ToInt32(context.HttpContext?.Request.Headers[config.RequestSettings.PageIndex]);
+        var pageSize = Convert.ToInt32(context.HttpContext?.Request.Headers[config.RequestSettings.PageSize]);
 
         var dto = new PaginationDto
         {
@@ -171,7 +161,7 @@ public class UtilService : IUtilService
         var token = GetJwtSecurityToken();
         if (token == null) return null;
 
-        var roleIdClaim = token.Claims.First(c => c.Type == _config.AuthSettings.Role);
+        var roleIdClaim = token.Claims.First(c => c.Type == config.AuthSettings.Role);
 
         if (roleIdClaim is null || string.IsNullOrEmpty(roleIdClaim.Value)) return null;
 
@@ -180,7 +170,7 @@ public class UtilService : IUtilService
 
     public string GetEnvFolderPath(string folderName)
     {
-        return Path.Combine(_environment.WebRootPath, folderName);
+        return Path.Combine(environment.WebRootPath, folderName);
     }
 
     private JwtSecurityToken? GetJwtSecurityToken()
@@ -188,7 +178,7 @@ public class UtilService : IUtilService
         var tokenString = GetTokenString();
 
         if (string.IsNullOrEmpty(tokenString)) return null;
-        return !tokenString.Contains($"{_config.AuthSettings.TokenPrefix} ")
+        return !tokenString.Contains($"{config.AuthSettings.TokenPrefix} ")
             ? null
             : new JwtSecurityToken(tokenString[7..]);
     }

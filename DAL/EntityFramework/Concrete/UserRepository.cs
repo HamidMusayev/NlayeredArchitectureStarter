@@ -6,15 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.EntityFramework.Concrete;
 
-public class UserRepository : GenericRepository<User>, IUserRepository
+public class UserRepository(DataContext dataContext) : GenericRepository<User>(dataContext), IUserRepository
 {
-    private readonly DataContext _dataContext;
-
-    public UserRepository(DataContext dataContext)
-        : base(dataContext)
-    {
-        _dataContext = dataContext;
-    }
+    private readonly DataContext _dataContext = dataContext;
 
     public async Task<string?> GetUserSaltAsync(string userEmail)
     {

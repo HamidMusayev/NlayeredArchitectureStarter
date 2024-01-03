@@ -11,17 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CORE.Helpers;
 
-public class SecurityHelper
+public class SecurityHelper(ConfigSettings configSettings, IUtilService utilService)
 {
-    private readonly ConfigSettings _configSettings;
-    private readonly IUtilService _utilService;
-
-    public SecurityHelper(ConfigSettings configSettings, IUtilService utilService)
-    {
-        _configSettings = configSettings;
-        _utilService = utilService;
-    }
-
     public static string GenerateSalt()
     {
         var saltBytes = new byte[16];
@@ -52,15 +43,15 @@ public class SecurityHelper
     {
         var claims = new List<Claim>
         {
-            new(_configSettings.AuthSettings.TokenUserIdKey, _utilService.Encrypt(userDto.Id.ToString())),
+            new(configSettings.AuthSettings.TokenUserIdKey, utilService.Encrypt(userDto.Id.ToString())),
             new(ClaimTypes.Name, userDto.Username),
-            new(_configSettings.AuthSettings.Role, userDto.Role == null ? string.Empty : userDto.Role!.Name),
+            new(configSettings.AuthSettings.Role, userDto.Role == null ? string.Empty : userDto.Role!.Name),
             new(ClaimTypes.Expiration, expirationDate.ToString(CultureInfo.InvariantCulture))
         };
         //claims.Add(new Claim(_configSettings.AuthSettings.TokenCompanyIdKey, userDto.CompanyId.ToString()!));
         //claims.Add(new Claim(_configSettings.AuthSettings.TokenUserTypeKey, userDto.Type.ToString()));
 
-        var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configSettings.AuthSettings.SecretKey));
+        var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(configSettings.AuthSettings.SecretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
         var tokenDescriptor = new SecurityTokenDescriptor

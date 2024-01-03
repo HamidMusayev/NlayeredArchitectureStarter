@@ -2,8 +2,7 @@
 
 namespace DTO.Organization;
 
-public record OrganizationToAddDto
-(
+public record OrganizationToAddDto(
     string FullName,
     string ShortName,
     string Address,
@@ -14,8 +13,7 @@ public record OrganizationToAddDto
     string Rekvizit
 );
 
-public record OrganizationToListDto
-(
+public record OrganizationToListDto(
     Guid Id,
     string FullName,
     string ShortName,
@@ -28,8 +26,7 @@ public record OrganizationToListDto
     FileToListDto? LogoFile
 );
 
-public record OrganizationToUpdateDto
-(
+public record OrganizationToUpdateDto(
     string FullName,
     string ShortName,
     string Address,

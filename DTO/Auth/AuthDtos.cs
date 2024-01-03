@@ -5,8 +5,7 @@ namespace DTO.Auth;
 
 public record LoginDto(string Email, string Password);
 
-public record LoginResponseDto
-(
+public record LoginResponseDto(
     UserToListDto User,
     string AccessToken,
     DateTime AccessTokenExpireDate,
@@ -14,8 +13,7 @@ public record LoginResponseDto
     DateTime RefreshTokenExpireDate
 );
 
-public record ResetPasswordDto
-(
+public record ResetPasswordDto(
     string Email,
     string? VerificationCode,
     [property: RegularExpression("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$",

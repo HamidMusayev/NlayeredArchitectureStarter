@@ -11,18 +11,11 @@ namespace API.Hubs;
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [Authorize]
 [EnableCors(Constants.EnableAllCorsName)]
-public class UserHub : Hub
+public class UserHub(ConfigSettings configSettings) : Hub
 {
-    private readonly ConfigSettings _configSettings;
-
-    public UserHub(ConfigSettings configSettings)
-    {
-        _configSettings = configSettings;
-    }
-
     public async Task JoinGroup(string? optionalNotificationMessage)
     {
-        var companyId = Context.User?.FindFirst(_configSettings.AuthSettings.TokenCompanyIdKey)
+        var companyId = Context.User?.FindFirst(configSettings.AuthSettings.TokenCompanyIdKey)
             ?.Value;
 
         if (companyId is null) return;

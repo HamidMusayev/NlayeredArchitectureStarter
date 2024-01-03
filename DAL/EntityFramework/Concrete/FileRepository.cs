@@ -5,13 +5,7 @@ using File = ENTITIES.Entities.File;
 
 namespace DAL.EntityFramework.Concrete;
 
-public class FileRepository : GenericRepository<File>, IFileRepository
+public class FileRepository(DataContext dataContext) : GenericRepository<File>(dataContext), IFileRepository
 {
-    private readonly DataContext _dataContext;
-
-    public FileRepository(DataContext dataContext)
-        : base(dataContext)
-    {
-        _dataContext = dataContext;
-    }
+    private readonly DataContext _dataContext = dataContext;
 }

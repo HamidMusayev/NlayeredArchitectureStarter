@@ -10,7 +10,7 @@ namespace MEDIATRS.OrganizationCQRS.Handlers;
 
 public class
     GetOrganizationListHandler : IRequestHandler<GetOrganizationListQuery,
-        IDataResult<List<OrganizationToListDto>>>
+    IDataResult<List<OrganizationToListDto>>>
 {
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;

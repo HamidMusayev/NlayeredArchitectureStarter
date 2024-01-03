@@ -1,4 +1,6 @@
-﻿using API.Containers;
+﻿using System.Net;
+using System.Text.Json.Serialization;
+using API.Containers;
 using API.Filters;
 using API.Graphql.Role;
 using API.Hubs;
@@ -17,6 +19,7 @@ using GraphQL.Server.Ui.Voyager;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nummy.CodeLogger.Extensions;
 using Nummy.CodeLogger.Models;
 using Nummy.ExceptionHandler.Extensions;
@@ -110,17 +113,15 @@ builder.Services.AddNummyHttpLogger(options =>
 {
     options.EnableRequestLogging = true;
     options.EnableResponseLogging = true;
-    options.ExcludeContainingPaths = new[] { "swaggger", "api/user/login", "user/create" };
+    options.ExcludeContainingPaths = ["swagger", "api/user/login"];
     options.DatabaseType = NummyHttpLoggerDatabaseType.PostgreSql;
-    options.DatabaseConnectionString =
-        "Host=localhost;Port=5432;Database=nummy_db;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
+    options.DatabaseConnectionString = config.ConnectionStrings.AppNummyDb;
 });
 
 builder.Services.AddNummyCodeLogger(options =>
 {
     options.DatabaseType = NummyCodeLoggerDatabaseType.PostgreSql;
-    options.DatabaseConnectionString =
-        "Host=localhost;Port=5432;Database=nummy_db;Username=postgres;Password=postgres;IncludeErrorDetail=true;";
+    options.DatabaseConnectionString = config.ConnectionStrings.AppNummyDb;
 });
 
 //builder.Services.AddAntiforgery();
