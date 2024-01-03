@@ -1,5 +1,4 @@
 ﻿using API.Attributes;
-using API.Filters;
 using DTO.Responses;
 using ENTITIES.Entities.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,7 +11,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace API.Controllers;
 
 [Route("api/[controller]")]
-[ServiceFilter(typeof(LogActionFilter))]
+//[ServiceFilter(typeof(LogActionFilter))]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
 public class PersonController : Controller

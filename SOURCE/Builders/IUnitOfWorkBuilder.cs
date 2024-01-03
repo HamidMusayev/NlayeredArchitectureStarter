@@ -1,8 +1,8 @@
-﻿using SOURCE.Builders.Abstract;
+﻿using System.Text;
+using SOURCE.Builders.Abstract;
 using SOURCE.Helpers;
 using SOURCE.Models;
 using SOURCE.Workers;
-using System.Text;
 
 namespace SOURCE.Builders;
 

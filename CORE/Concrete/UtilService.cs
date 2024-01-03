@@ -1,15 +1,14 @@
-﻿using CORE.Abstract;
-using CORE.Config;
-using DTO.Helper;
-using ENTITIES.Enums;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using CORE.Abstract;
+using CORE.Config;
+using DTO.Helper;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CORE.Concrete;
 
@@ -177,16 +176,6 @@ public class UtilService : IUtilService
         if (roleIdClaim is null || string.IsNullOrEmpty(roleIdClaim.Value)) return null;
 
         return roleIdClaim.Value;
-    }
-
-    public string GetFolderName(FileType type)
-    {
-        return type switch
-        {
-            FileType.UserProfile => @"files\images\user_profile",
-            FileType.OrganizationLogo => @"files\images\organization_logo",
-            _ => "files/error"
-        };
     }
 
     public string GetEnvFolderPath(string folderName)

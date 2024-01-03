@@ -1,11 +1,9 @@
 ﻿using API.Attributes;
-using API.Filters;
 using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Config;
 using CORE.Helpers;
 using CORE.Localization;
-using DAL.MongoDb;
 using DTO.Auth;
 using DTO.Responses;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,13 +15,12 @@ using IResult = DTO.Responses.IResult;
 namespace API.Controllers;
 
 [Route("api/[controller]")]
-[ServiceFilter(typeof(LogActionFilter))]
+/*[ServiceFilter(typeof(LogActionFilter))]*/
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class AuthController : Controller
 {
     private readonly IAuthService _authService;
     private readonly ConfigSettings _configSettings;
-    private readonly IMongoDbService _mongoDbService;
     private readonly ITokenService _tokenService;
     private readonly IUtilService _utilService;
 
@@ -31,14 +28,13 @@ public class AuthController : Controller
         IAuthService authService,
         ConfigSettings configSettings,
         IUtilService utilService,
-        ITokenService tokenService,
-        IMongoDbService mongoDbService)
+        ITokenService tokenService
+    )
     {
         _authService = authService;
         _configSettings = configSettings;
         _utilService = utilService;
         _tokenService = tokenService;
-        _mongoDbService = mongoDbService;
     }
 
     [SwaggerOperation(Summary = "login")]

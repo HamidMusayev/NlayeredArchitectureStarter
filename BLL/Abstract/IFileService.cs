@@ -6,6 +6,6 @@ namespace BLL.Abstract;
 public interface IFileService
 {
     Task<IDataResult<FileToListDto>> GetAsync(string hashName);
-    Task<IResult> AddFileAsync(FileToAddDto dto, FileUploadRequestDto requestDto);
-    Task<IResult> RemoveFileAsync(FileRemoveRequestDto dto);
+    Task<IResult> AddAsync(FileToAddDto dto, FileUploadRequestDto requestDto);
+    Task<IResult> RemoveAsync(FileRemoveRequestDto dto);
 }

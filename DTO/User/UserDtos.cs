@@ -1,6 +1,6 @@
-﻿using DTO.File;
+﻿using System.ComponentModel.DataAnnotations;
+using DTO.File;
 using DTO.Role;
-using System.ComponentModel.DataAnnotations;
 
 namespace DTO.User;
 

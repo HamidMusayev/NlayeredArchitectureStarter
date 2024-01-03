@@ -60,7 +60,6 @@ public class PermissionService : IPermissionService
         var datas = _mapper.Map<List<PermissionToListDto>>(await _unitOfWork.PermissionRepository.GetListAsync());
 
         return new SuccessDataResult<List<PermissionToListDto>>(datas, Messages.Success.Translate());
-
     }
 
     public async Task<IDataResult<PermissionToListDto>> GetAsync(Guid id)

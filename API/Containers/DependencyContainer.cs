@@ -1,9 +1,10 @@
-﻿using API.Hubs;
+﻿using System.Text;
+using System.Threading.RateLimiting;
+using API.Hubs;
 using BLL.Concrete;
 using CORE.Abstract;
 using CORE.Concrete;
 using CORE.Config;
-using CORE.Logging;
 using DAL.ElasticSearch;
 using DAL.EntityFramework.Concrete;
 using DAL.EntityFramework.UnitOfWork;
@@ -23,10 +24,6 @@ using Refit;
 using REFITS.Clients;
 using StackExchange.Profiling;
 using StackExchange.Profiling.SqlFormatters;
-using System.Text;
-using System.Threading.RateLimiting;
-using WatchDog;
-using WatchDog.src.Enums;
 
 namespace API.Containers;
 
@@ -245,17 +242,6 @@ public static class DependencyContainer
             //(options.Storage as MemoryCacheStorage)!.CacheDuration = TimeSpan.FromMinutes(60);
             options.SqlFormatter = new InlineFormatter();
         }).AddEntityFramework();
-    }
-
-    public static void RegisterWatchDog(this IServiceCollection services)
-    {
-        services.AddWatchDogServices(opt =>
-        {
-            opt.IsAutoClear = true;
-            opt.ClearTimeSchedule = WatchDogAutoClearScheduleEnum.Weekly;
-            //opt.SetExternalDbConnString = "Server=localhost;Database=testDb;User Id=postgres;Password=root;"; 
-            //opt.DbDriverOption = WatchDogSqlDriverEnum.PostgreSql; 
-        });
     }
 
     public static void RegisterRefitClients(this IServiceCollection services, ConfigSettings config)
