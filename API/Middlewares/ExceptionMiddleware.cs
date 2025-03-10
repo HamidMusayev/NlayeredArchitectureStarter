@@ -3,7 +3,6 @@ using CORE.Localization;
 using CORE.Logging;
 using DTO.Responses;
 using Microsoft.AspNetCore.Http.Features;
-using Sentry;
 using System.Net;
 using System.Text.Json;
 using CORE.Abstract;
@@ -24,7 +23,6 @@ public class ExceptionMiddleware(RequestDelegate next, ConfigSettings config, IS
         {
             _logger.LogError($"Something went wrong: {ex}");
             await LogErrorAsync(httpContext, ex);
-            if (config.SentrySettings.IsEnabled) SentrySdk.CaptureException(ex);
 
           //  if (_env.IsDevelopment()) throw;
             await HandleExceptionAsync(httpContext);

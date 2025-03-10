@@ -1,256 +1,73 @@
-# Net7ApiStarter
+# NLayered Starter Project
 
-**Code contributors**
+This is a starter project built with ASP.NET Core, featuring a variety of integrated services and configurations to help you get started quickly.
 
-![Alt](https://repobeats.axiom.co/api/embed/f8c50b5c55ce520d8198a81cb6f63150cec32209.svg "Repobeats analytics image")
+## Features
 
-**Core Layers and Their Roles**
+- **API Versioning**: Supports multiple API versions using URL segments, headers, and media types.
+- **Rate Limiting**: Configured to limit the number of requests to prevent abuse.
+- **Repository Pattern**: Implements the repository pattern for data access.
+- **SignalR**: Real-time web functionality using SignalR.
+- **Unit of Work**: Manages transactions and coordinates changes across multiple repositories.
+- **Output Caching**: Caches responses to improve performance.
+- **Redis**: Configurable Redis support for caching and other purposes.
+- **MongoDB**: Configurable MongoDB support for NoSQL database operations.
+- **Elasticsearch**: Configurable Elasticsearch support for search and analytics.
+- **MediatR**: Implements the mediator pattern for handling requests and notifications.
+- **CQRS**: Implements the Command Query Responsibility Segregation pattern.
+- **MiniProfiler**: Integrated MiniProfiler for performance profiling.
+- **Refit**: Simplifies HTTP API calls with Refit clients.
+- **GraphQL**: Supports GraphQL queries and mutations with Voyager UI.
+- **Health Checks**: Monitors the health of the application and its dependencies.
+- **Authentication**: Configurable authentication settings.
+- **CORS**: Configured to allow cross-origin requests.
+- **Exception Handling**: Centralized exception handling with NummyExceptionHandler.
+- **HTTP Logging**: Logs HTTP requests and responses for debugging and monitoring.
+- **Code Logging**: Logs code execution for debugging and monitoring.
+- **Swagger**: Integrated Swagger for API documentation.
+- **Localization**: Middleware for handling localization.
+- **Static Files**: Serves static files.
+- **FluentValidation**: Validates models using FluentValidation.
+- **AutoMapper**: Maps objects using AutoMapper.
+- **Entity Framework Core**: Configured for PostgreSQL database access.
+- **Cryptography**: Configurable cryptography settings.
+- **SFTP**: Configurable SFTP server settings.
+- **JWT Authentication**: Secure authentication using JSON Web Tokens.
+- **Background Services**: Support for running background tasks.
+- **Hangfire**: Integrated Hangfire for background job processing.
+- **Serilog**: Configurable logging with Serilog.
+- **Polly**: Resilience and transient-fault-handling library.
 
-**1\. API**
+## Configuration
 
-- **Purpose**: This is the presentation layer, containing:
-    - **Controllers**: Handle HTTP requests and delegate to BLL or MediatR.
-    - **ActionFilters** and **Middlewares**: Implement cross-cutting concerns (e.g., validation, logging, localization, exception handling).
-    - **GraphQL** and **Hubs**: Add support for advanced communication protocols like GraphQL and SignalR.
-    - **Services**: Specialized services like RedisIndexCreatorService.
+The project uses `appsettings.Development.json` for configuration. Key settings include:
 
-**Architecture Alignment**: Clearly part of a **Layered Architecture** for the presentation tier.
+- **AuthSettings**: JWT authentication settings.
+- **ConnectionStrings**: Database connection strings.
+- **MailSettings**: Email server settings.
+- **RedisSettings**: Redis connection settings.
+- **ElasticSearchSettings**: Elasticsearch connection settings.
+- **MongoDbSettings**: MongoDB connection settings.
+- **CryptographySettings**: Cryptography settings.
+- **SftpSettings**: SFTP server settings.
+- **SwaggerSettings**: Swagger UI settings.
+- **RequestSettings**: Request settings.
+- **ToDoClientSettings**: ToDo client settings.
 
-**2\. BLL (Business Logic Layer)**
+## Getting Started
 
-- **Purpose**: Contains the core business logic.
-    - **Abstract**: Interfaces for business services.
-    - **Concrete**: Implementations of business services.
-    - **MediatR**: Shows the implementation of CQRS:
-        - Commands, Queries, and Handlers are defined for tasks like AddOrganizationCommand.
+1. Clone the repository.
+2. Update the configuration settings in `appsettings.Development.json`.
+3. Build and run the project using your preferred IDE (e.g., JetBrains Rider).
 
-**Architecture Alignment**: Incorporates **CQRS principles** with a focus on separation of read and write operations.
+## Running the Application
 
-**3\. CORE**
+To run the application, use the following command:
 
-- **Purpose**: Contains reusable, application-agnostic logic and utilities:
-    - **Constants** and **Config**: Centralized configuration management.
-    - **Helper**: General-purpose helpers (e.g., file operations, security).
-    - **Logging** and **Localization**: Cross-cutting concerns.
+```sh
+dotnet run
+```
 
-**Architecture Alignment**: Acts as the **Core Layer** in **Clean Architecture** to centralize reusable logic and decouple it from other layers.
+## License
 
-**4\. DAL (Data Access Layer)**
-
-- **Purpose**: Manages database interactions.
-    - **Abstract/Concrete**: Repository pattern for data access.
-    - **CustomMigrations** and **DatabaseContext**: Support for Entity Framework Core.
-    - **GenericRepositories**: Provides a generic approach for repository operations.
-    - **UnitOfWorks**: Manages database transactions.
-
-**Architecture Alignment**: Typical **Data Access Layer** in a **Layered Architecture** setup.
-
-**5\. DTO**
-
-- **Purpose**: Data Transfer Objects used for communication between layers.
-    - Contains validators, such as UserValidators, to validate DTOs before processing.
-
-**Architecture Alignment**: Supports the **Layered Architecture** and **Clean Architecture** principles by separating transport objects from domain models.
-
-**6\. ENTITIES**
-
-- **Purpose**: Represents domain models and enums used across the application.
-    - Includes subfolders for Redis entities, logging entities, and user entities.
-
-**Architecture Alignment**: Part of the **Domain Layer** in **Clean Architecture**.
-
-**7\. SOURCE**
-
-- **Purpose**: A specialized folder for additional helpers, builders, models, and workers.
-    - Likely used for modular or independent utilities.
-
-**Architecture Alignment**: Modular utility helpers, typically part of a **Clean Architecture** utility layer.
-
-**Other Observations**
-
-1. **MediatR and CQRS**: The presence of commands, queries, and handlers under BLL/MediatR shows an effort to implement **CQRS principles**.
-2. **GraphQL**: Indicates support for advanced querying, aligning with modern API design.
-3. **Redis**: Redis entities and services suggest caching or session management.
-4. **Cross-Cutting Concerns**: The use of middlewares and helpers in CORE and API demonstrates adherence to **separation of concerns**.
-
-**Architectural Classification**
-
-The project integrates multiple architectural patterns:
-
-1. **Layered Architecture**: Clear separation of API, BLL, DAL, and CORE.
-2. **Clean Architecture**:
-    - CORE acts as a domain layer.
-    - Dependencies flow inward, with reusable utilities and abstractions.
-3. **CQRS**: Found in BLL/MediatR with commands and queries.
-
-This is a **hybrid architecture**, combining the strengths of **Layered Architecture**, **Clean Architecture**, and **CQRS** to achieve scalability, maintainability, and modularity.
-
-**Structure** //todo
-
-    │── ── ── ── ── ── ── ── ── ── ── ── ── ──
-    │ .NET 7.0 WebApi Starter Project
-    │── ── ── ── ── ── ── ── ── ── ── ── ── ──
-    │
-    ├── API 
-    │   ├── ActionFilters
-    │   │   ├── LogActionFilter
-    │   │   └── ModelValidatorActionFilter
-    │   ├── Attributes
-    │   │   ├── ValidateForgeryTokenAttribute
-    │   │   └── ValidateTokenAttribute
-    │   ├── Containers
-    │   │   └── DependencyContainer
-    │   ├── Controllers
-    │   │   ├── UserController
-    │   │   └── ...
-    │   ├── Graphql
-    │   │   ├── Role
-    │   │   │   ├── Mutation
-    │   │   │   └── Query
-    │   │   └── ...
-    │   ├── Hubs
-    │   │   ├── UserHub
-    │   │   └── ...
-    │   ├── Middlewares
-    │   │   ├── AntiForgery
-    │   │   │   ├── AntiForgeryTokenValidator
-    │   │   │   └── ValidateAntiForgeryTokenMiddleware
-    │   │   ├── ExceptionMiddleware
-    │   │   └── LocalizationMiddleware
-    │   └── Services
-    │       └── RedisIndexCreatorService
-    │
-    │── ── ── ── ── ── ── ── ── ── ── ── ── ──
-    │
-    ├── BLL     
-    │   ├── Abstract
-    │   │   ├── IUserService
-    │   │   └── ...
-    │   ├── Concrete
-    │   │   ├── UserService
-    │   │   └── ...
-    │   ├── Mappers
-    │   │   ├── Automapper
-    │   │   ├── UserMapper
-    │   │   └── ...
-    │   └── MediatR
-    │       ├── OrganizationCQRS
-    │       │   ├── Commands
-    │       │   │   ├── AddOrganizationCommand
-    │       │   │   └── ...
-    │       │   ├── Handlers
-    │       │   │   ├── AddOrganizationHandler
-    │       │   │   ├── GetOrganizationListHandler
-    │       │   │   └── ...
-    │       │   └── Queries
-    │       │       ├── GetOrganizationListQuery
-    │       │       └── ...
-    │       └── ...
-    │       //TODO ADD RABBITMQ HERE
-    │ 
-    │── ── ── ── ── ── ── ── ── ── ── ── ── ──
-    │
-    ├── CORE
-    │   ├── Abstract
-    │   │   └── ISftpService
-    │   │   └── IUtilService
-    │   ├── Concrete
-    │   │   └── SftpService
-    │   │   └── UtilService
-    │   ├── Constants
-    │   │   ├── Constants
-    │   │   └── LocalizationConstants
-    │   ├── Config
-    │   │   ├── AuthSettings
-    │   │   ├── ConfigSettings
-    │   │   ├── ConnectionStrings
-    │   │   ├── Controllable
-    │   │   ├── CryptographySettings
-    │   │   ├── HttpClientSettings
-    │   │   ├── HttpHeader
-    │   │   ├── MailSettings
-    │   │   ├── RedisSettings
-    │   │   ├── RequestSettings
-    │   │   ├── SentrySettings
-    │   │   ├── SftpSettings
-    │   │   └── SwaggerSettings
-    │   ├── Helper
-    │   │   ├── ExpressionHelper
-    │   │   ├── FileHelper
-    │   │   ├── FilterHelper
-    │   │   ├── ObjectSerializer
-    │   │   └── SecurityHelper
-    │   ├── Logging
-    │   │   ├── ILoggerManager
-    │   │   └── LoggerManager
-    │   └── Localization
-    │       ├── TranslatorExtension
-    │       ├── Messages
-    │       ├── MsgResource.az
-    │       ├── MsgResource.en
-    │       └── MsgResource.ru
-    │
-    │── ── ── ── ── ── ── ── ── ── ── ── ── ──
-    │
-    ├── DAL
-    │   ├── Abstract
-    │   │   ├── IUserRepository
-    │   │   └── ...
-    │   ├── Concrete
-    │   │   ├── UserRepository
-    │   │   └── ...
-    │   ├── CustomMigrations
-    │   │   └── DataSeed
-    │   ├── DatabaseContext
-    │   │   └── DataContext
-    │   ├── GenericRepositories
-    │   │   ├── Abstract
-    │   │   │   └── IGenericRepository
-    │   │   └── Concrete
-    │   │       └── GenericRepository
-    │   ├── Migrations
-    │   │   └── ...
-    │   ├── UnitOfWorks
-    │   │   ├── Abstract
-    │   │   │   └── IUnitOfWork
-    │   │   └── Concrete
-    │   │       └── UnitOfWork
-    │   └── Utility
-    │       ├── PaginatedList 
-    │       └── PaginationInfo
-    │
-    │── ── ── ── ── ── ── ── ── ── ── ── ── ──
-    │
-    ├── DTO  
-    │   ├── User
-    │   │   ├── UserValidators
-    │   │   │   ├── AddDtoValidator
-    │   │   │   └── ...
-    │   │   ├── UserToAddDto
-    │   │   └── ...
-    │   └── ...
-    │
-    │── ── ── ── ── ── ── ── ── ── ── ── ── ──
-    │
-    ├── ENTITIES
-    │   ├── Entities
-    │   │   ├── Redis
-    │   │   │   └── ..
-    │   │   ├── Logging
-    │   │   │   └── ..
-    │   │   ├── User
-    │   │   └── ..
-    │   ├── Enums
-    │   │   ├── UserType
-    │   │   └── ..
-    │   └── IEntity
-    │ 
-    │── ── ── ── ── ── ── ── ── ── ── ── ── ──
-    │
-    ├── SOURCE
-    │   ├── Builders
-    │   ├── Helpers
-    │   ├── Models
-    │   └── Workers
-    │
-    └── ── ── ── ── ── ── ── ── ── ── ── ── ──
+This project is licensed under the MIT License.
