@@ -21,11 +21,8 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nummy.CodeLogger.Extensions;
-using Nummy.CodeLogger.Models;
 using Nummy.ExceptionHandler.Extensions;
-using Nummy.ExceptionHandler.Models;
 using Nummy.HttpLogger.Extensions;
-using Nummy.HttpLogger.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,8 +37,6 @@ builder.Services.AddControllers(opt => opt.Filters.Add(typeof(ModelValidatorActi
 
 builder.Services.AddFluentValidationAutoValidation()
     .AddValidatorsFromAssemblyContaining<ResetPasswordDtoValidator>();
-
-if (config.SentrySettings.IsEnabled) builder.WebHost.UseSentry();
 
 builder.Services.AddAutoMapper(Automapper.GetAutoMapperProfilesFromAllAssemblies().ToArray());
 
@@ -103,8 +98,8 @@ builder.Services.AddSignalR();
 
 builder.Services.AddNummyExceptionHandler(options =>
 {
-    options.ReturnResponseDuringException = true; // if false, the app throws exceptions as a normal
-    options.ResponseContentType = NummyResponseContentType.Json;
+    options.HandleException = true; // if false, the app throws exceptions as a normal
+    options.DsnUrl = "http://localhost:8082";
     options.ResponseStatusCode = HttpStatusCode.BadRequest;
     options.Response = new ErrorResult(Messages.GeneralError.Translate());
 });
@@ -114,15 +109,10 @@ builder.Services.AddNummyHttpLogger(options =>
     options.EnableRequestLogging = true;
     options.EnableResponseLogging = true;
     options.ExcludeContainingPaths = ["swagger", "api/user/login"];
-    options.DatabaseType = NummyHttpLoggerDatabaseType.PostgreSql;
-    options.DatabaseConnectionString = config.ConnectionStrings.AppNummyDb;
+    options.DsnUrl = "http://localhost:8082";
 });
 
-builder.Services.AddNummyCodeLogger(options =>
-{
-    options.DatabaseType = NummyCodeLoggerDatabaseType.PostgreSql;
-    options.DatabaseConnectionString = config.ConnectionStrings.AppNummyDb;
-});
+builder.Services.AddNummyCodeLogger(options => { options.DsnUrl = "http://localhost:8082"; });
 
 //builder.Services.AddAntiforgery();
 
@@ -165,8 +155,6 @@ app.UseHttpsRedirection();
     context.Response.Headers.Add("Referrer-Policy", "no-referrer");
     await next.Invoke();
 });*/
-
-if (config.SentrySettings.IsEnabled) app.UseSentryTracing();
 
 app.UseStaticFiles();
 

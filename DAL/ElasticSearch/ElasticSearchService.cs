@@ -1,23 +1,21 @@
 ﻿using System.Linq.Expressions;
-using Elasticsearch.Net;
-using Nest;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Core.Bulk;
+using Elastic.Transport;
 
 namespace DAL.ElasticSearch;
 
 public class ElasticSearchService<T> : IElasticSearchService<T> where T : class
 {
-    private readonly ElasticClient _client;
+    private readonly ElasticsearchClient _client;
 
-    public ElasticSearchService(string uri, string defaultIndex, string? username = null, string? password = null)
+    public ElasticSearchService(string uri, string defaultIndex, string username, string password)
     {
-        var pool = new SingleNodeConnectionPool(new Uri(uri));
-
-        var settings = new ConnectionSettings(pool)
+        var settings = new ElasticsearchClientSettings(new Uri(uri))
             .DefaultIndex(defaultIndex)
-            .DefaultMappingFor<T>(m => m.IndexName(defaultIndex))
-            .BasicAuthentication(username, password);
+            .Authentication(new BasicAuthentication(username, password));
 
-        _client = new ElasticClient(settings);
+        _client = new ElasticsearchClient(settings);
     }
 
     public async Task<bool> IndexExistsAsync(string indexName)
@@ -28,50 +26,36 @@ public class ElasticSearchService<T> : IElasticSearchService<T> where T : class
 
     public async Task<bool> CreateIndexAsync(string indexName)
     {
-        var createIndexResponse = await _client.Indices.CreateAsync(indexName, c => c
-            .Map<T>(m => m.AutoMap())
-            .Settings(s => s
-                .Analysis(a => a
-                    .Analyzers(aa => aa
-                        .Custom("my_analyzer", ca => ca
-                            .Tokenizer("standard")
-                            .CharFilters("html_strip")
-                            .Filters("lowercase", "asciifolding")
-                        )
-                    )
-                )
-            )
-        );
-
-        return createIndexResponse.IsValid;
+        var response = await _client.Indices.CreateAsync(indexName);
+        return response.IsSuccess();
     }
 
-    public async Task<bool> AddToIndexAsync(T document)
+    public async Task<bool> AddToIndexAsync(T document, string indexName)
     {
-        var indexResponse = await _client.IndexDocumentAsync(document);
-        return indexResponse.IsValid;
+        var response = await _client.IndexAsync(document, idx => idx.Index(indexName));
+        return response.IsSuccess();
     }
 
-    public async Task<bool> AddRangeToIndexAsync(IEnumerable<T> documents)
+    public async Task<bool> AddRangeToIndexAsync(IEnumerable<T> documents, string indexName)
     {
-        var indexResponse = await _client.IndexManyAsync(documents);
-        if (!indexResponse.IsValid) return false;
-        return indexResponse.IsValid;
+        var bulkRequest = new BulkRequest(indexName)
+        {
+            Operations = documents.Select(d => new BulkIndexOperation<T>(d)).Cast<IBulkOperation>().ToList()
+        };
+
+        var response = await _client.BulkAsync(bulkRequest);
+        return response.IsSuccess();
     }
 
     public async Task<bool> DeleteIndexAsync(string indexName)
     {
-        var deleteIndexResponse = await _client.Indices.DeleteAsync(indexName);
-        return deleteIndexResponse.IsValid;
+        var response = await _client.Indices.DeleteAsync(indexName);
+        return response.IsSuccess();
     }
 
-
-    /// <summary>
-    ///     Example: var documents = await SearchDocumentsAsync(d => d.Text, "some query");
-    /// </summary>
     public async Task<IEnumerable<T>> SearchDocumentsAsync(Expression<Func<T, object>> field, string query)
     {
-        var searchResponse = await _client.SearchAsync<T>(s => s
+        var response = await _client.SearchAsync<T>(s => s
             .Query(q => q
                 .Match(m => m
                     .Field(field)
@@ -79,6 +63,7 @@ public class ElasticSearchService<T> : IElasticSearchService<T> where T : class
                 )
             )
         );
-        return searchResponse.Documents;
+
+        return response.Documents;
     }
 }
