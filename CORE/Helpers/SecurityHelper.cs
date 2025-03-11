@@ -48,7 +48,6 @@ public class SecurityHelper(ConfigSettings configSettings, IUtilService utilServ
             new(configSettings.AuthSettings.Role, userDto.Role == null ? string.Empty : userDto.Role!.Name),
             new(ClaimTypes.Expiration, expirationDate.ToString(CultureInfo.InvariantCulture))
         };
-        //claims.Add(new Claim(_configSettings.AuthSettings.TokenCompanyIdKey, userDto.CompanyId.ToString()!));
         //claims.Add(new Claim(_configSettings.AuthSettings.TokenUserTypeKey, userDto.Type.ToString()));
 
         var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(configSettings.AuthSettings.SecretKey));

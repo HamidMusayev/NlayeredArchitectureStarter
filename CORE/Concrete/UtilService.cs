@@ -28,18 +28,6 @@ public class UtilService(ConfigSettings config, IHttpContextAccessor context, IW
         return Guid.Parse(userId);
     }
 
-    public Guid? GetCompanyIdFromToken()
-    {
-        var token = GetJwtSecurityToken();
-        if (token is null) return null;
-
-        var companyIdClaim = token.Claims.First(c => c.Type == config.AuthSettings.TokenCompanyIdKey);
-
-        if (companyIdClaim is null || string.IsNullOrEmpty(companyIdClaim.Value)) return null;
-
-        return Guid.Parse(companyIdClaim.Value);
-    }
-
     public bool IsValidToken()
     {
         var tokenString = GetTokenString();

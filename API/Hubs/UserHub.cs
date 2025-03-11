@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using CORE.Config;
+﻿using CORE.Config;
 using CORE.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +14,7 @@ public class UserHub(ConfigSettings configSettings) : Hub
 {
     public async Task JoinGroup(string? optionalNotificationMessage)
     {
-        var companyId = Context.User?.FindFirst(configSettings.AuthSettings.TokenCompanyIdKey)
+        /*var companyId = Context.User?.FindFirst(configSettings.AuthSettings.TokenCompanyIdKey)
             ?.Value;
 
         if (companyId is null) return;
@@ -24,7 +23,7 @@ public class UserHub(ConfigSettings configSettings) : Hub
 
         await Clients.Groups(companyId).SendAsync("UserJoined",
             Context.User?.FindFirst(ClaimTypes.Name)?.Value,
-            optionalNotificationMessage);
+            optionalNotificationMessage);*/
     }
 
     public override async Task OnConnectedAsync()
