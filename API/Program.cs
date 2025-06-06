@@ -96,23 +96,32 @@ builder.Services.RegisterMiniProfiler();
 
 builder.Services.AddSignalR();
 
-builder.Services.AddNummyExceptionHandler(options =>
+const string nummyServiceUrl = "http://localhost:8082/";
+const string applicationId = "9ff9a65c-223e-4281-97c7-96e8c5530370";
+
+builder.Services.AddNummyCodeLogger(options => 
 {
-    options.HandleException = true; // if false, the app throws exceptions as a normal
-    options.DsnUrl = "http://localhost:8082";
-    options.ResponseStatusCode = HttpStatusCode.BadRequest;
-    options.Response = new ErrorResult(Messages.GeneralError.Translate());
+    options.NummyServiceUrl = nummyServiceUrl;
+    options.ApplicationId = applicationId;
 });
 
 builder.Services.AddNummyHttpLogger(options =>
 {
     options.EnableRequestLogging = true;
     options.EnableResponseLogging = true;
-    options.ExcludeContainingPaths = ["swagger", "api/user/login"];
-    options.DsnUrl = "http://localhost:8082";
+    options.ExcludeContainingPaths = ["swagger"];
+    options.ApplicationId = applicationId;
+    options.NummyServiceUrl = nummyServiceUrl;
 });
 
-builder.Services.AddNummyCodeLogger(options => { options.DsnUrl = "http://localhost:8082"; });
+builder.Services.AddNummyExceptionHandler(options =>
+{
+    options.HandleException = true;
+    options.ResponseStatusCode = HttpStatusCode.Conflict;
+    options.Response = new ErrorResult(Messages.GeneralError.Translate());;
+    options.ApplicationId = applicationId;
+    options.NummyServiceUrl = nummyServiceUrl;
+});
 
 //builder.Services.AddAntiforgery();
 
