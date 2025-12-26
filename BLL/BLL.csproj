@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <CodeAnalysisRuleSet>../settings.ruleset</CodeAnalysisRuleSet>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -19,6 +19,6 @@
         <ProjectReference Include="..\ENTITIES\ENTITIES.csproj"/>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="AutoMapper" Version="14.0.0"/>
+        <PackageReference Include="AutoMapper" Version="16.0.0"/>
     </ItemGroup>
 </Project>

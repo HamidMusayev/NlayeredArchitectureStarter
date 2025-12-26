@@ -24,7 +24,7 @@ public record FileToAddDto(
 
 //add validator for this class
 public record FileUploadRequestDto(
-    IFormFile File,
+    IFormFile? File,
     FileType Type,
     Guid? UserId,
     Guid? OrganizationId

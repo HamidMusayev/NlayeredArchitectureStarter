@@ -18,7 +18,6 @@ This is a starter project built with ASP.NET Core, featuring a variety of integr
 - **MiniProfiler**: Integrated MiniProfiler for performance profiling.
 - **Refit**: Simplifies HTTP API calls with Refit clients.
 - **GraphQL**: Supports GraphQL queries and mutations with Voyager UI.
-- **Health Checks**: Monitors the health of the application and its dependencies.
 - **Authentication**: Configurable authentication settings.
 - **CORS**: Configured to allow cross-origin requests.
 - **Exception Handling**: Centralized exception handling with NummyExceptionHandler.
@@ -35,8 +34,6 @@ This is a starter project built with ASP.NET Core, featuring a variety of integr
 - **JWT Authentication**: Secure authentication using JSON Web Tokens.
 - **Background Services**: Support for running background tasks.
 - **Hangfire**: Integrated Hangfire for background job processing.
-- **Serilog**: Configurable logging with Serilog.
-- **Polly**: Resilience and transient-fault-handling library.
 
 ## Configuration
 

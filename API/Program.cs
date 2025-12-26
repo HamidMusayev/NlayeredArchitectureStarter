@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using API.Containers;
 using API.Filters;
 using API.Graphql.Role;
+using API.HangfireJobs;
 using API.Hubs;
 using API.Middlewares;
 using API.Services;
@@ -16,12 +17,14 @@ using DTO.Responses;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using GraphQL.Server.Ui.Voyager;
-using HealthChecks.UI.Client;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nummy.CodeLogger.Extensions;
 using Nummy.ExceptionHandler.Extensions;
+using Nummy.HealthChecker.Entites;
+using Nummy.HealthChecker.Extensions;
 using Nummy.HttpLogger.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,7 +41,8 @@ builder.Services.AddControllers(opt => opt.Filters.Add(typeof(ModelValidatorActi
 builder.Services.AddFluentValidationAutoValidation()
     .AddValidatorsFromAssemblyContaining<ResetPasswordDtoValidator>();
 
-builder.Services.AddAutoMapper(Automapper.GetAutoMapperProfilesFromAllAssemblies().ToArray());
+builder.Services.AddAutoMapper(_ => { },
+    Automapper.GetAutoMapperProfilesFromAllAssemblies().ToArray());
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseNpgsql(config.ConnectionStrings.AppDb));
@@ -74,8 +78,6 @@ builder.Services.AddGraphQLServer()
     .AddSorting()
     .AddFiltering();
 
-builder.Services.AddHealthChecks().AddNpgSql(config.ConnectionStrings.AppDb);
-
 builder.Services.RegisterAuthentication(config);
 
 builder.Services.AddCors(o => o
@@ -99,7 +101,7 @@ builder.Services.AddSignalR();
 const string nummyServiceUrl = "http://localhost:8082/";
 const string applicationId = "9ff9a65c-223e-4281-97c7-96e8c5530370";
 
-builder.Services.AddNummyCodeLogger(options => 
+builder.Services.AddNummyCodeLogger(options =>
 {
     options.NummyServiceUrl = nummyServiceUrl;
     options.ApplicationId = applicationId;
@@ -118,10 +120,35 @@ builder.Services.AddNummyExceptionHandler(options =>
 {
     options.HandleException = true;
     options.ResponseStatusCode = HttpStatusCode.Conflict;
-    options.Response = new ErrorResult(Messages.GeneralError.Translate());;
+    options.Response = new ErrorResult(Messages.GeneralError.Translate());
+
     options.ApplicationId = applicationId;
     options.NummyServiceUrl = nummyServiceUrl;
 });
+
+builder.Services.AddNummyHealthChecker(options =>
+{
+    options.Path = "nummy/health"; // default is nummy/health
+
+    options.CheckAsync = (_, _) => Task.FromResult(new NummyHealthResult
+    {
+        IsHealthy = true,
+        Message = "Service is healthy"
+    });
+});
+
+// Hangfire
+builder.Services.AddHangfire(configuration =>
+    configuration.UsePostgreSqlStorage(
+        options => options.UseNpgsqlConnection(config.ConnectionStrings.AppDb),
+        new PostgreSqlStorageOptions
+        {
+            SchemaName = "hangfire",
+            PrepareSchemaIfNecessary = true,
+            QueuePollInterval = TimeSpan.FromSeconds(5)
+        }));
+
+builder.Services.AddHangfireServer(options => { options.WorkerCount = Math.Max(1, Environment.ProcessorCount / 2); });
 
 //builder.Services.AddAntiforgery();
 
@@ -144,9 +171,22 @@ app.UseMiddleware<LocalizationMiddleware>();
 
 app.UseNummyExceptionHandler();
 app.UseNummyHttpLogger();
+app.MapNummyHealthChecker();
 
 app.UseOutputCache();
 app.UseHttpsRedirection();
+
+app.UseHangfireDashboard("/api/hangfire"); // secure in production!
+
+// Recurring: every 30 minutes
+RecurringJob.AddOrUpdate<CounterJob>(
+    "sample-counter-job",
+    job => job.Run(JobCancellationToken.Null),
+    "*/30 * * * *", // every 30 minutes
+    new RecurringJobOptions
+    {
+        TimeZone = TimeZoneInfo.Utc
+    });
 
 /*app.Use((context, next) =>
 {
@@ -174,13 +214,6 @@ app.UseAuthentication();
 // app.UseMiniProfiler();
 
 app.UseRateLimiter();
-
-app.MapHealthChecks(
-    "/health",
-    new HealthCheckOptions
-    {
-        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-    });
 
 app.MapControllers();
 

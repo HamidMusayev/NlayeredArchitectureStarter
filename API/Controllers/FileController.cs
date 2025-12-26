@@ -2,6 +2,7 @@
 using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Constants;
+using CORE.Helpers;
 using CORE.Localization;
 using DTO.File;
 using DTO.Responses;
@@ -26,17 +27,33 @@ public class FileController(
     [HttpPost]
     public async Task<IActionResult> Upload([FromBody] FileUploadRequestDto dto)
     {
+        // check file
+        if (dto.File == null || dto.File.Length == 0)
+            return BadRequest(new ErrorResult(Messages.FileIsNotFound.Translate()));
+
+        if (!FileHelper.IsValidPdf(dto.File))
+            return BadRequest(new ErrorResult(Messages.ThisFileTypeIsNotAllowed.Translate()));
+
+        if (dto.File.Length > 2 * 1024 * 1024) // limit file size to 2 MB
+            return BadRequest(new ErrorResult(Messages.FileIsLargeThan2Mb.Translate().Replace("{value}", "15MB")));
+
         // create file
         var originalFileName = Path.GetFileName(dto.File.FileName);
         var hashFileName = Guid.NewGuid().ToString();
         var fileExtension = Path.GetExtension(dto.File.FileName);
 
-        // check extension
-        if (!Constants.AllowedFileExtensions.Contains(fileExtension))
-            return BadRequest(new ErrorDataResult<string>(Messages.ThisFileTypeIsNotAllowed.Translate()));
+        // to secure file remove js code from inside
+        var sanitizedFile = await FileHelper.RemoveJavaScriptFromPdfAsync(dto.File);
 
+        /*// Optional: Scan for Malware (Implement your antivirus scan)
+        if (!await FileHelper.ScanForVirusesAsync(Path.Combine(uploadsFolder, fileName)))
+        {
+            System.IO.File.Delete(Path.Combine(uploadsFolder, fileName)); // Remove infected file
+            return BadRequest("The uploaded file contains malware and has been rejected.");
+        }*/
+        
         var path = dto.Type.ToString();
-        sftpService.UploadFile(path, $"{hashFileName}{fileExtension}", dto.File);
+        sftpService.UploadFile(path, $"{hashFileName}{fileExtension}", sanitizedFile);
 
         // or
         // var path = _utilService.GetEnvFolderPath(dto.Type.ToString());
@@ -44,7 +61,7 @@ public class FileController(
 
         // add to database
         var fileToAdd =
-            new FileToAddDto(originalFileName, hashFileName, fileExtension, dto.File.Length, path, dto.Type);
+            new FileToAddDto(originalFileName, hashFileName, fileExtension, sanitizedFile.Length, path, dto.Type);
         await fileService.AddAsync(fileToAdd, dto);
 
         return Ok(new SuccessDataResult<string>(hashFileName, Messages.Success.Translate()));
