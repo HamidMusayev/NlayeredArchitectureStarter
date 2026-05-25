@@ -12,10 +12,11 @@ using IResult = DTO.Responses.IResult;
 
 namespace API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class OrganizationController(IMediator mediator) : Controller
+public class OrganizationController(IMediator mediator) : ControllerBase
 {
     [SwaggerOperation(Summary = "get organizations")]
     [Produces(typeof(IDataResult<List<OrganizationToListDto>>))]

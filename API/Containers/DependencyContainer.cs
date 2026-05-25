@@ -38,7 +38,7 @@ public static class DependencyContainer
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidateIssuerSigningKey = false,
+                        ValidateIssuerSigningKey = true,
                         IssuerSigningKey =
                             new SymmetricSecurityKey(Encoding.ASCII.GetBytes(config.AuthSettings.SecretKey)),
                         ValidateIssuer = false,
@@ -143,19 +143,19 @@ public static class DependencyContainer
         {
             services.TryAddScoped<IUtilService, UtilService>();
 
+            // util service is in the core assembly, therefore we need to register it separately
+
             services.Scan(scan => scan
                 .FromAssemblies(typeof(UserService).Assembly)
-                .AddClasses(classes => classes.AssignableTo(typeof(object)))
+                .AddClasses(classes => classes.InNamespaces("BLL.Concrete"))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime());
 
             services.Scan(scan => scan
                 .FromAssemblies(typeof(UserRepository).Assembly)
-                .AddClasses(classes => classes.AssignableTo(typeof(object)))
+                .AddClasses(classes => classes.InNamespaces("DAL.EntityFramework.Concrete"))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime());
-
-            // util service is in the core assembly, therefore we need to register it separately
         }
 
         public void RegisterSignalRHubs()

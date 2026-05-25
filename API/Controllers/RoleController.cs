@@ -10,10 +10,11 @@ using IResult = DTO.Responses.IResult;
 
 namespace API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class RoleController(IRoleService roleService) : Controller
+public class RoleController(IRoleService roleService) : ControllerBase
 {
     [SwaggerOperation(Summary = "get roles")]
     [Produces(typeof(IDataResult<List<RoleToListDto>>))]

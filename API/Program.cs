@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json.Serialization;
 using API.Containers;
 using API.Filters;
@@ -19,6 +19,7 @@ using FluentValidation.AspNetCore;
 using GraphQL.Server.Ui.Voyager;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nummy.CodeLogger.Extensions;
@@ -37,6 +38,9 @@ builder.Services.TryAddSingleton(config);
 
 builder.Services.AddControllers(opt => opt.Filters.Add(typeof(ModelValidatorActionFilter)))
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Suppress [ApiController]'s built-in model state filter so our custom ModelValidatorActionFilter runs instead
+builder.Services.Configure<ApiBehaviorOptions>(options => options.SuppressModelStateInvalidFilter = true);
 
 builder.Services.AddFluentValidationAutoValidation()
     .AddValidatorsFromAssemblyContaining<ResetPasswordDtoValidator>();
@@ -86,8 +90,6 @@ builder.Services.AddCors(o => o
         .AllowAnyHeader()
         .AllowAnyOrigin()));
 
-//builder.Services.AddScoped<LogActionFilter>();
-
 builder.Services.AddScoped<ModelValidatorActionFilter>();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -98,13 +100,10 @@ builder.Services.RegisterMiniProfiler();
 
 builder.Services.AddSignalR();
 
-const string nummyServiceUrl = "http://localhost:8082/";
-const string applicationId = "9ff9a65c-223e-4281-97c7-96e8c5530370";
-
 builder.Services.AddNummyCodeLogger(options =>
 {
-    options.NummyServiceUrl = nummyServiceUrl;
-    options.ApplicationId = applicationId;
+    options.NummyServiceUrl = config.NummySettings.ServiceUrl;
+    options.ApplicationId = config.NummySettings.ApplicationId;
 });
 
 builder.Services.AddNummyHttpLogger(options =>
@@ -112,8 +111,8 @@ builder.Services.AddNummyHttpLogger(options =>
     options.EnableRequestLogging = true;
     options.EnableResponseLogging = true;
     options.ExcludeContainingPaths = ["swagger"];
-    options.ApplicationId = applicationId;
-    options.NummyServiceUrl = nummyServiceUrl;
+    options.ApplicationId = config.NummySettings.ApplicationId;
+    options.NummyServiceUrl = config.NummySettings.ServiceUrl;
 });
 
 builder.Services.AddNummyExceptionHandler(options =>
@@ -122,13 +121,13 @@ builder.Services.AddNummyExceptionHandler(options =>
     options.ResponseStatusCode = HttpStatusCode.Conflict;
     options.Response = new ErrorResult(Messages.GeneralError.Translate());
 
-    options.ApplicationId = applicationId;
-    options.NummyServiceUrl = nummyServiceUrl;
+    options.ApplicationId = config.NummySettings.ApplicationId;
+    options.NummyServiceUrl = config.NummySettings.ServiceUrl;
 });
 
 builder.Services.AddNummyHealthChecker(options =>
 {
-    options.Path = "nummy/health"; // default is nummy/health
+    options.Path = "nummy/health";
 
     options.CheckAsync = (_, _) => Task.FromResult(new NummyHealthResult
     {
@@ -150,20 +149,12 @@ builder.Services.AddHangfire(configuration =>
 
 builder.Services.AddHangfireServer(options => { options.WorkerCount = Math.Max(1, Environment.ProcessorCount / 2); });
 
-//builder.Services.AddAntiforgery();
-
 var app = builder.Build();
-
-// app.UseAntiforgery();
-
-// if (app.Environment.IsDevelopment())
 
 if (config.SwaggerSettings.IsEnabled) app.UseSwagger();
 
 if (config.SwaggerSettings.IsEnabled)
     app.UseSwaggerUI(c => c.InjectStylesheet(config.SwaggerSettings.Theme));
-
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 app.UseCors(Constants.EnableAllCorsName);
 
@@ -176,40 +167,37 @@ app.MapNummyHealthChecker();
 app.UseOutputCache();
 app.UseHttpsRedirection();
 
-app.UseHangfireDashboard("/api/hangfire"); // secure in production!
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "Deny");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    // CSP is intentionally permissive to allow Swagger UI and GraphQL Voyager inline assets
+    context.Response.Headers.Append("Content-Security-Policy",
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;");
+    await next.Invoke();
+});
+
+app.UseHangfireDashboard("/api/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireAuthorizationFilter()]
+});
 
 // Recurring: every 30 minutes
 RecurringJob.AddOrUpdate<CounterJob>(
     "sample-counter-job",
     job => job.Run(JobCancellationToken.Null),
-    "*/30 * * * *", // every 30 minutes
+    "*/30 * * * *",
     new RecurringJobOptions
     {
         TimeZone = TimeZoneInfo.Utc
     });
 
-/*app.Use((context, next) =>
-{
-    context.Request.EnableBuffering();
-    return next();
-});*/
-
-// this will cause unexpected behaviour on watchdog's site
-/*app.Use(async (context, next) =>
-{
-    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
-    context.Response.Headers.Add("Content-Security-Policy", "default-src 'self'");
-    context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
-    context.Response.Headers.Add("X-Frame-Options", "Deny");
-    context.Response.Headers.Add("Referrer-Policy", "no-referrer");
-    await next.Invoke();
-});*/
-
 app.UseStaticFiles();
 
-app.UseAuthorization();
-
 app.UseAuthentication();
+app.UseAuthorization();
 
 // app.UseMiniProfiler();
 

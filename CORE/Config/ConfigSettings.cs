@@ -13,4 +13,5 @@ public record ConfigSettings
     public CryptographySettings CryptographySettings { get; set; } = default!;
     public MailSettings MailSettings { get; set; } = default!;
     public SftpSettings SftpSettings { get; set; } = default!;
+    public NummySettings NummySettings { get; set; } = default!;
 }

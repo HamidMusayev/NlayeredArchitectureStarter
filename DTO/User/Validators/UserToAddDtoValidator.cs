@@ -1,12 +1,14 @@
-﻿using FluentValidation;
+using FluentValidation;
 
-namespace DTO.Auth.Validators;
+namespace DTO.User.Validators;
 
-public class ResetPasswordDtoValidator : AbstractValidator<ResetPasswordDto>
+public class UserToAddDtoValidator : AbstractValidator<UserToAddDto>
 {
-    public ResetPasswordDtoValidator()
+    public UserToAddDtoValidator()
     {
+        RuleFor(p => p.Username).NotEmpty();
         RuleFor(p => p.Email).NotEmpty().EmailAddress();
+        RuleFor(p => p.ContactNumber).NotEmpty();
         RuleFor(p => p.Password)
             .NotEmpty()
             .Matches("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$")

@@ -40,8 +40,9 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IUtilService ut
     public async Task<IResult> SoftDeleteAsync(Guid id)
     {
         var data = await unitOfWork.UserRepository.GetAsync(m => m.Id == id);
+        if (data is null) return new ErrorResult(Messages.UserIsNotExist.Translate());
 
-        unitOfWork.UserRepository.SoftDelete(data!);
+        unitOfWork.UserRepository.SoftDelete(data);
 
         var tokens = await unitOfWork.TokenRepository.GetListAsync(m => m.UserId == id);
         tokens.ForEach(m => m.IsDeleted = true);
@@ -64,6 +65,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IUtilService ut
 
     public async Task<IDataResult<List<UserToListDto>>> GetAsync()
     {
+        // loads all rows — prefer GetAsPaginatedListAsync for large datasets
         var datas = await unitOfWork.UserRepository.GetListAsync();
 
         return new SuccessDataResult<List<UserToListDto>>(mapper.Map<List<UserToListDto>>(datas),
@@ -72,9 +74,10 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IUtilService ut
 
     public async Task<IDataResult<UserToListDto>> GetAsync(Guid id)
     {
-        var data = mapper.Map<UserToListDto>(await unitOfWork.UserRepository.GetAsync(m => m.Id == id));
+        var data = await unitOfWork.UserRepository.GetAsync(m => m.Id == id);
+        if (data is null) return new ErrorDataResult<UserToListDto>(Messages.UserIsNotExist.Translate());
 
-        return new SuccessDataResult<UserToListDto>(data, Messages.Success.Translate());
+        return new SuccessDataResult<UserToListDto>(mapper.Map<UserToListDto>(data), Messages.Success.Translate());
     }
 
     public async Task<IResult> UpdateAsync(Guid id, UserToUpdateDto dto)

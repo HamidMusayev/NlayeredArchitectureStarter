@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Helpers;
@@ -13,16 +13,16 @@ namespace BLL.Concrete;
 public class AuthService(IUnitOfWork unitOfWork, IMapper mapper, IUtilService utilService)
     : IAuthService
 {
-    public async Task<string?> GetUserSaltAsync(string userEmail)
+    public async Task<IDataResult<UserToListDto>> LoginAsync(LoginDto dto)
     {
-        return await unitOfWork.UserRepository.GetUserSaltAsync(userEmail);
-    }
+        var salt = await unitOfWork.UserRepository.GetUserSaltAsync(dto.Email);
+        if (string.IsNullOrEmpty(salt))
+            return new ErrorDataResult<UserToListDto>(Messages.InvalidUserCredentials.Translate());
 
-    public async Task<IDataResult<UserToListDto>> LoginAsync(LoginDto dtos)
-    {
-        var data =
-            await unitOfWork.UserRepository.GetAsync(m =>
-                m.Email == dtos.Email && m.Password == dtos.Password);
+        var hashedPassword = SecurityHelper.HashPassword(dto.Password, salt);
+
+        var data = await unitOfWork.UserRepository.GetAsync(
+            m => m.Email == dto.Email && m.Password == hashedPassword);
         if (data == null)
             return new ErrorDataResult<UserToListDto>(Messages.InvalidUserCredentials.Translate());
 
@@ -43,9 +43,16 @@ public class AuthService(IUnitOfWork unitOfWork, IMapper mapper, IUtilService ut
         return new SuccessDataResult<UserToListDto>(mapper.Map<UserToListDto>(data), Messages.Success.Translate());
     }
 
-    public IResult SendOtpAsync(string email)
+    public async Task<IResult> SendOtpAsync(string email)
     {
-        //TODO SEND MAIL TO EMAIL
+        var data = await unitOfWork.UserRepository.GetAsync(m => m.Email == email);
+        if (data is null) return new ErrorResult(Messages.UserIsNotExist.Translate());
+
+        data.LastVerificationCode = Random.Shared.Next(100000, 999999).ToString();
+        await unitOfWork.CommitAsync();
+
+        // TODO: dispatch email via IMailService using data.LastVerificationCode
+
         return new SuccessResult(Messages.VerificationCodeSent.Translate());
     }
 
@@ -61,6 +68,7 @@ public class AuthService(IUnitOfWork unitOfWork, IMapper mapper, IUtilService ut
 
         data.Salt = SecurityHelper.GenerateSalt();
         data.Password = SecurityHelper.HashPassword(dto.Password, data.Salt);
+        data.LastVerificationCode = null;
         await unitOfWork.CommitAsync();
 
         return new SuccessResult(Messages.PasswordResetted.Translate());

@@ -6,9 +6,10 @@ using REFITS.Clients;
 
 namespace API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class HelperController(IToDoClient toDoClient, INummyCodeLoggerService nummyCodeLoggerService) : Controller
+public class HelperController(IToDoClient toDoClient, INummyCodeLoggerService nummyCodeLoggerService) : ControllerBase
 {
     [HttpGet("refit/test/todo/get")]
     [AllowAnonymous]

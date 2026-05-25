@@ -70,7 +70,7 @@ public class TokenService(
 
     public async Task<IResult> SoftDeleteAsync(Guid id)
     {
-        var data = await unitOfWork.TokenRepository.GetAsync(m => m.TokenId == id);
+        var data = await unitOfWork.TokenRepository.GetAsync(m => m.Id == id);
 
         unitOfWork.TokenRepository.SoftDelete(data!);
         await unitOfWork.CommitAsync();

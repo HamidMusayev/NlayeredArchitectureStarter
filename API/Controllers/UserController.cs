@@ -12,11 +12,12 @@ using IResult = DTO.Responses.IResult;
 
 namespace API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
 public class UserController(IUserService userService, IUtilService utilService, IAuthService authService)
-    : Controller
+    : ControllerBase
 {
     [SwaggerOperation(Summary = "get users as paginated list")]
     [Produces(typeof(IDataResult<List<UserToListDto>>))]

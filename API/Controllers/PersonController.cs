@@ -10,10 +10,11 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class PersonController(RedisConnectionProvider provider) : Controller
+public class PersonController(RedisConnectionProvider provider) : ControllerBase
 {
     private readonly RedisCollection<Person> _collection = (RedisCollection<Person>)provider.RedisCollection<Person>();
 

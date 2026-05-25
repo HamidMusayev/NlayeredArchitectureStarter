@@ -37,8 +37,6 @@ public class DataContext(DbContextOptions<DataContext> options, IUtilService uti
     {
         modelBuilder.AddGlobalFilter(nameof(Auditable.IsDeleted), false);
 
-        modelBuilder.Entity<Token>().HasQueryFilter(m => !m.IsDeleted);
-
         DataSeed.Seed(modelBuilder);
     }
 
@@ -54,7 +52,7 @@ public class DataContext(DbContextOptions<DataContext> options, IUtilService uti
                 case EntityState.Added:
                     // var originalValues = entityEntry.OriginalValues.ToObject();
                     // var currentValues = entityEntry.CurrentValues.ToObject();
-                    ((Auditable)entityEntry.Entity).CreatedAt = DateTime.Now;
+                    ((Auditable)entityEntry.Entity).CreatedAt = DateTime.UtcNow;
                     ((Auditable)entityEntry.Entity).CreatedById =
                         utilService.GetUserIdFromToken();
                     break;
@@ -72,13 +70,13 @@ public class DataContext(DbContextOptions<DataContext> options, IUtilService uti
                         Entry((Auditable)entityEntry.Entity).Property(p => p.ModifiedAt)
                             .IsModified = false;
 
-                        ((Auditable)entityEntry.Entity).DeletedAt = DateTime.Now;
+                        ((Auditable)entityEntry.Entity).DeletedAt = DateTime.UtcNow;
                         ((Auditable)entityEntry.Entity).DeletedBy =
                             utilService.GetUserIdFromToken();
                     }
                     else
                     {
-                        ((Auditable)entityEntry.Entity).ModifiedAt = DateTime.Now;
+                        ((Auditable)entityEntry.Entity).ModifiedAt = DateTime.UtcNow;
                         ((Auditable)entityEntry.Entity).ModifiedBy =
                             utilService.GetUserIdFromToken();
                     }

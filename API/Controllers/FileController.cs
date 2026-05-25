@@ -15,12 +15,13 @@ using Path = System.IO.Path;
 
 namespace API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
 public class FileController(
     IFileService fileService,
-    ISftpService sftpService) : Controller
+    ISftpService sftpService) : ControllerBase
 {
     [SwaggerOperation(Summary = "upload file")]
     [Produces(typeof(IDataResult<string>))]

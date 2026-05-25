@@ -9,10 +9,11 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class PermissionController(IPermissionService permissionService) : Controller
+public class PermissionController(IPermissionService permissionService) : ControllerBase
 {
     [SwaggerOperation(Summary = "get permissions as paginated list")]
     [Produces(typeof(IDataResult<List<PermissionToListDto>>))]

@@ -3,7 +3,7 @@
 namespace DTO.Token;
 
 public record TokenToListDto(
-    Guid TokenId,
+    Guid Id,
     UserToListDto User,
     string AccessToken,
     DateTimeOffset AccessTokenExpireDate,

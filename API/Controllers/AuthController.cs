@@ -2,7 +2,6 @@
 using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Config;
-using CORE.Helpers;
 using CORE.Localization;
 using DTO.Auth;
 using DTO.Responses;
@@ -14,6 +13,7 @@ using IResult = DTO.Responses.IResult;
 
 namespace API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class AuthController(
@@ -21,7 +21,7 @@ public class AuthController(
     ConfigSettings configSettings,
     IUtilService utilService,
     ITokenService tokenService)
-    : Controller
+    : ControllerBase
 {
     [SwaggerOperation(Summary = "login")]
     [Produces(typeof(IDataResult<LoginResponseDto>))]
@@ -29,13 +29,6 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginDto request)
     {
-        var userSalt = await authService.GetUserSaltAsync(request.Email);
-
-        if (string.IsNullOrEmpty(userSalt))
-            return Ok(new ErrorDataResult<Result>(Messages.InvalidUserCredentials.Translate()));
-
-        request = request with { Password = SecurityHelper.HashPassword(request.Password, userSalt) };
-
         var loginResult = await authService.LoginAsync(request);
         if (!loginResult.Success) return Unauthorized(loginResult);
 
@@ -48,9 +41,9 @@ public class AuthController(
     [Produces(typeof(IResult))]
     [HttpGet("otp")]
     [AllowAnonymous]
-    public IActionResult SendOtp([FromQuery] string email)
+    public async Task<IActionResult> SendOtp([FromQuery] string email)
     {
-        return Ok(authService.SendOtpAsync(email));
+        return Ok(await authService.SendOtpAsync(email));
     }
 
     [SwaggerOperation(Summary = "refesh access token")]
@@ -67,7 +60,7 @@ public class AuthController(
         var tokenResponse = await tokenService.GetAsync(jwtToken, refreshToken);
         if (tokenResponse.Success)
         {
-            await tokenService.SoftDeleteAsync(tokenResponse.Data!.TokenId);
+            await tokenService.SoftDeleteAsync(tokenResponse.Data!.Id);
             var response = await tokenService.CreateTokenAsync(tokenResponse.Data.User);
             return Ok(response);
         }
