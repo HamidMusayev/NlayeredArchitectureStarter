@@ -1,4 +1,4 @@
-﻿using CORE.Abstract;
+using CORE.Abstract;
 using CORE.Config;
 using Microsoft.AspNetCore.Http;
 using Renci.SshNet;
@@ -8,80 +8,71 @@ namespace CORE.Concrete;
 
 public class SftpService(ConfigSettings configSettings) : ISftpService
 {
-    public void UploadFile(string folderPath, string fileName, IFormFile formFile)
+    public async Task UploadFileAsync(string folderPath, string fileName, IFormFile formFile,
+        CancellationToken ct = default)
     {
-        var connectionInfo = GetConnectionInfo();
-        using var sftpClient = new SftpClient(connectionInfo);
-
-        sftpClient.Connect();
+        using var sftpClient = new SftpClient(GetConnectionInfo());
+        await sftpClient.ConnectAsync(ct);
         if (!sftpClient.IsConnected) return;
 
-        CreateDirectoryIfNotExists(sftpClient, folderPath);
-        sftpClient.ChangeDirectory(folderPath);
+        await EnsureDirectoryAsync(sftpClient, folderPath, ct);
 
-        using (var ms = new MemoryStream())
-        {
-            formFile.CopyTo(ms);
-            var fileBytes = ms.ToArray();
+        var fullPath = CombinePath(folderPath, fileName);
 
-            var filePath = Path.Combine(folderPath, fileName);
-            sftpClient.WriteAllBytes(filePath, fileBytes);
-        }
+        await using var sourceStream = formFile.OpenReadStream();
+        await Task.Run(() => sftpClient.UploadFile(sourceStream, fullPath), ct);
 
         sftpClient.Disconnect();
     }
 
-    public void DeleteFile(string folderPath, string fileName)
+    public async Task DeleteFileAsync(string folderPath, string fileName, CancellationToken ct = default)
     {
-        var connectionInfo = GetConnectionInfo();
-        using var sftpClient = new SftpClient(connectionInfo);
-
-        sftpClient.Connect();
+        using var sftpClient = new SftpClient(GetConnectionInfo());
+        await sftpClient.ConnectAsync(ct);
         if (!sftpClient.IsConnected) return;
 
-        sftpClient.ChangeDirectory(folderPath);
+        var fullPath = CombinePath(folderPath, fileName);
+        if (await Task.Run(() => sftpClient.Exists(fullPath), ct))
+            await Task.Run(() => sftpClient.DeleteFile(fullPath), ct);
 
-        var filePath = Path.Combine(folderPath, fileName);
-        if (sftpClient.Exists(filePath)) sftpClient.Delete(filePath);
+        sftpClient.Disconnect();
     }
 
-    public byte[] ReadFile(string folderPath, string fileName)
+    public async Task<byte[]> ReadFileAsync(string folderPath, string fileName, CancellationToken ct = default)
     {
-        var fileBytes = Array.Empty<byte>();
+        using var sftpClient = new SftpClient(GetConnectionInfo());
+        await sftpClient.ConnectAsync(ct);
+        if (!sftpClient.IsConnected) return [];
 
-        var connectionInfo = GetConnectionInfo();
-        using var sftpClient = new SftpClient(connectionInfo);
+        var fullPath = CombinePath(folderPath, fileName);
 
-        sftpClient.Connect();
-        if (!sftpClient.IsConnected) return fileBytes;
+        await using var ms = new MemoryStream();
+        await Task.Run(() => sftpClient.DownloadFile(fullPath, ms), ct);
 
-        sftpClient.ChangeDirectory(folderPath);
-
-        var filePath = Path.Combine(folderPath, fileName);
-        fileBytes = sftpClient.ReadAllBytes(filePath);
-
-        return fileBytes;
+        sftpClient.Disconnect();
+        return ms.ToArray();
     }
 
     private ConnectionInfo GetConnectionInfo()
     {
-        var authMethod = new PasswordAuthenticationMethod
-        (
+        var authMethod = new PasswordAuthenticationMethod(
             configSettings.SftpSettings.UserName,
-            configSettings.SftpSettings.Password
-        );
+            configSettings.SftpSettings.Password);
 
-        return new ConnectionInfo
-        (
+        return new ConnectionInfo(
             configSettings.SftpSettings.Ip,
             configSettings.SftpSettings.UserName,
-            authMethod
-        );
+            authMethod);
     }
 
-    private static void CreateDirectoryIfNotExists(ISftpClient client, string folderPath)
+    private static async Task EnsureDirectoryAsync(SftpClient client, string folderPath, CancellationToken ct)
     {
-        if (!client.Exists(folderPath))
-            client.CreateDirectory(folderPath);
+        if (!await Task.Run(() => client.Exists(folderPath), ct))
+            await Task.Run(() => client.CreateDirectory(folderPath), ct);
+    }
+
+    private static string CombinePath(string folder, string file)
+    {
+        return folder.TrimEnd('/') + "/" + file;
     }
 }

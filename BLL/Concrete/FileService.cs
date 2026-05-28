@@ -1,6 +1,7 @@
-﻿using AutoMapper;
+using AutoMapper;
 using BLL.Abstract;
 using CORE.Localization;
+using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
 using DTO.File;
 using DTO.Responses;
@@ -9,49 +10,39 @@ using File = ENTITIES.Entities.File;
 
 namespace BLL.Concrete;
 
-public class FileService(IUnitOfWork unitOfWork, IMapper mapper, IUserService userService)
+public class FileService(
+    IFileRepository fileRepository,
+    IUnitOfWork unitOfWork,
+    IMapper mapper,
+    IEnumerable<IFileTypeHandler> handlers)
     : IFileService
 {
-    public async Task<IResult> AddAsync(FileToAddDto dto, FileUploadRequestDto requestDto)
-    {
-        var fileId = await AddAsync(dto);
+    private readonly Dictionary<FileType, IFileTypeHandler> _handlers =
+        handlers.ToDictionary(h => h.Type);
 
-        switch (dto.Type)
-        {
-            case FileType.UserProfile:
-                await userService.AddProfileAsync(requestDto.UserId!.Value, fileId.Data);
-                break;
-            case FileType.OrganizationLogo:
-                // because of organization services are in mediatr
-                // we don't need to inject this to here and add mediatr package to BLL just for this line.
-                // that is example line and shows logic
-                //await _organizationService.AddLogoAsync(requestDto.OrganizationId!.Value, fileId.Data);
-                break;
-        }
+    public async Task<IResult> AddAsync(FileToAddDto addDto, FileUploadRequestDto requestDto)
+    {
+        var fileId = await AddAsync(addDto);
+
+        if (_handlers.TryGetValue(addDto.Type, out var handler))
+            await handler.OnFileAddedAsync(fileId.Data, requestDto);
 
         return new SuccessResult(Messages.Success.Translate());
     }
 
-    public async Task<IResult> RemoveAsync(FileRemoveRequestDto dto)
+    public async Task<IResult> RemoveAsync(FileRemoveRequestDto requestDto)
     {
-        await SoftDeleteAsync(dto.HashName);
+        await SoftDeleteAsync(requestDto.HashName);
 
-        switch (dto.Type)
-        {
-            case FileType.UserProfile:
-                await userService.AddProfileAsync(dto.UserId!.Value, null);
-                break;
-            case FileType.OrganizationLogo:
-                //await _organizationService.AddProfileAsync(userId!.Value, null);
-                break;
-        }
+        if (_handlers.TryGetValue(requestDto.Type, out var handler))
+            await handler.OnFileRemovedAsync(requestDto);
 
         return new SuccessResult(Messages.Success.Translate());
     }
 
     public async Task<IDataResult<FileToListDto>> GetAsync(string hashName)
     {
-        var data = await unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName);
+        var data = await fileRepository.GetAsync(m => m.HashName == hashName);
         if (data is null) return new ErrorDataResult<FileToListDto>(Messages.DataNotFound.Translate());
 
         var mapped = mapper.Map<FileToListDto>(data);
@@ -59,11 +50,11 @@ public class FileService(IUnitOfWork unitOfWork, IMapper mapper, IUserService us
         return new SuccessDataResult<FileToListDto>(mapped, Messages.Success.Translate());
     }
 
-    private async Task<IDataResult<Guid>> AddAsync(FileToAddDto dto)
+    private async Task<IDataResult<Guid>> AddAsync(FileToAddDto addDto)
     {
-        var data = mapper.Map<File>(dto);
+        var data = mapper.Map<File>(addDto);
 
-        var added = await unitOfWork.FileRepository.AddAsync(data);
+        var added = await fileRepository.AddAsync(data);
         await unitOfWork.CommitAsync();
 
         return new SuccessDataResult<Guid>(added.Id, Messages.Success.Translate());
@@ -71,9 +62,10 @@ public class FileService(IUnitOfWork unitOfWork, IMapper mapper, IUserService us
 
     private async Task<IResult> SoftDeleteAsync(string hashName)
     {
-        var data = await unitOfWork.FileRepository.GetAsync(m => m.HashName == hashName);
+        var data = await fileRepository.GetAsync(m => m.HashName == hashName);
+        if (data is null) return new ErrorResult(Messages.DataNotFound.Translate());
 
-        unitOfWork.FileRepository.SoftDelete(data!);
+        fileRepository.SoftDelete(data);
         await unitOfWork.CommitAsync();
 
         return new SuccessResult(Messages.Success.Translate());

@@ -19,6 +19,6 @@
         <ProjectReference Include="..\ENTITIES\ENTITIES.csproj"/>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="AutoMapper" Version="16.0.0"/>
+        <PackageReference Include="AutoMapper" Version="16.1.1" />
     </ItemGroup>
 </Project>

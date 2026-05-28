@@ -7,9 +7,9 @@ namespace BLL.Abstract;
 
 public interface ITokenService
 {
-    Task<IResult> AddAsync(LoginResponseDto dto);
+    Task<IResult> AddAsync(LoginResponseDto responseDto);
     Task<IResult> SoftDeleteAsync(Guid id);
     Task<IDataResult<TokenToListDto>> GetAsync(string accessToken, string refreshToken);
     Task<IResult> CheckValidationAsync(string accessToken, string refreshToken);
-    Task<IDataResult<LoginResponseDto>> CreateTokenAsync(UserToListDto dto);
+    Task<IDataResult<LoginResponseDto>> CreateTokenAsync(UserToListDto listDto);
 }

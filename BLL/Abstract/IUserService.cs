@@ -12,9 +12,9 @@ public interface IUserService
 
     Task<IDataResult<UserToListDto>> GetAsync(Guid id);
 
-    Task<IResult> AddAsync(UserToAddDto dto);
+    Task<IResult> AddAsync(UserToAddDto addDto);
 
-    Task<IResult> UpdateAsync(Guid id, UserToUpdateDto dto);
+    Task<IResult> UpdateAsync(Guid id, UserToUpdateDto updateDto);
 
     Task<IResult> SoftDeleteAsync(Guid id);
     Task<IResult> AddProfileAsync(Guid userId, Guid? fileId);

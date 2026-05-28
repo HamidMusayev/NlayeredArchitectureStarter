@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.Threading.RateLimiting;
-using API.Hubs;
 using BLL.Concrete;
 using CORE.Abstract;
 using CORE.Concrete;
@@ -9,8 +8,8 @@ using DAL.ElasticSearch;
 using DAL.EntityFramework.Concrete;
 using DAL.EntityFramework.UnitOfWork;
 using DAL.MongoDb;
+using DAL.Redis;
 using DTO.User;
-using MediatR;
 using MEDIATRS;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -141,13 +140,20 @@ public static class DependencyContainer
 
         public void RegisterRepositories()
         {
-            services.TryAddScoped<IUtilService, UtilService>();
-
-            // util service is in the core assembly, therefore we need to register it separately
+            // Core services (in CORE assembly, not picked up by BLL/DAL scans)
+            services.TryAddScoped<IJwtService, JwtService>();
+            services.TryAddScoped<ICurrentUser, HttpCurrentUser>();
+            services.TryAddScoped<IEncryptionService, AesEncryptionService>();
+            services.TryAddScoped<IMailService, SmtpMailService>();
+            services.TryAddSingleton<ISmsService, TwilioSmsService>();
+            services.TryAddScoped<IPaginationContext, HttpPaginationContext>();
+            services.TryAddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
             services.Scan(scan => scan
                 .FromAssemblies(typeof(UserService).Assembly)
-                .AddClasses(classes => classes.InNamespaces("BLL.Concrete"))
+                .AddClasses(classes => classes.InNamespaces(
+                    "BLL.Concrete",
+                    "BLL.Concrete.FileTypeHandlers"))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime());
 
@@ -156,11 +162,6 @@ public static class DependencyContainer
                 .AddClasses(classes => classes.InNamespaces("DAL.EntityFramework.Concrete"))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime());
-        }
-
-        public void RegisterSignalRHubs()
-        {
-            services.TryAddSingleton<UserHub>();
         }
 
         public void RegisterUnitOfWork()
@@ -177,6 +178,7 @@ public static class DependencyContainer
         public void RegisterRedis(ConfigSettings config)
         {
             services.TryAddSingleton(new RedisConnectionProvider(config.RedisSettings.Connection));
+            services.TryAddScoped<IPersonRepository, PersonRepository>();
         }
 
         public void RegisterMongoDb()
@@ -197,14 +199,9 @@ public static class DependencyContainer
 
         public void RegisterMediatr()
         {
+            // AddMediatR already scans the assembly for IRequestHandler<,> implementations,
+            // so an additional Scrutor scan would double-register them.
             services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<MediatrAssemblyContainer>());
-
-            services.Scan(scan =>
-                scan.FromAssemblyOf<MediatrAssemblyContainer>()
-                    .AddClasses(classes => classes.AssignableTo(typeof(IRequestHandler<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime()
-            );
         }
 
         public void RegisterMiniProfiler()

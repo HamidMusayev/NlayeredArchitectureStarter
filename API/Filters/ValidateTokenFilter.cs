@@ -10,7 +10,7 @@ namespace API.Filters;
 public class ValidateTokenFilter(
     ConfigSettings configSettings,
     ITokenService tokenService,
-    IUtilService utilService) : IAsyncAuthorizationFilter
+    IJwtService jwtService) : IAsyncAuthorizationFilter
 {
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
@@ -23,7 +23,7 @@ public class ValidateTokenFilter(
         string? refreshToken = context.HttpContext.Request
             .Headers[configSettings.AuthSettings.RefreshTokenHeaderName];
 
-        jwtToken = utilService.TrimToken(jwtToken);
+        jwtToken = jwtService.TrimToken(jwtToken);
 
         var validationResult = await tokenService.CheckValidationAsync(jwtToken, refreshToken!);
 

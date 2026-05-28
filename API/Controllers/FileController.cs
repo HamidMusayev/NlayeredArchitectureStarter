@@ -1,11 +1,11 @@
-﻿using API.Attributes;
+using API.Attributes;
 using BLL.Abstract;
 using CORE.Abstract;
-using CORE.Constants;
 using CORE.Helpers;
 using CORE.Localization;
 using DTO.File;
 using DTO.Responses;
+using ENTITIES.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,46 +23,44 @@ public class FileController(
     IFileService fileService,
     ISftpService sftpService) : ControllerBase
 {
+    // Per-type upload policy: which extensions are accepted and max byte size.
+    // Adding a new FileType requires adding an entry here AND an IFileTypeHandler.
+    private static readonly Dictionary<FileType, (Func<IFormFile, bool> Validator, long MaxBytes, string FriendlyLimit)>
+        UploadPolicy = new()
+        {
+            [FileType.UserProfile] = (FileHelper.IsValidImage, 2 * 1024 * 1024, "2MB"),
+            [FileType.OrganizationLogo] = (FileHelper.IsValidImage, 2 * 1024 * 1024, "2MB")
+        };
+
     [SwaggerOperation(Summary = "upload file")]
     [Produces(typeof(IDataResult<string>))]
     [HttpPost]
-    public async Task<IActionResult> Upload([FromBody] FileUploadRequestDto dto)
+    public async Task<IActionResult> Upload([FromForm] FileUploadRequestDto dto)
     {
-        // check file
-        if (dto.File == null || dto.File.Length == 0)
+        if (dto.File is null || dto.File.Length == 0)
             return BadRequest(new ErrorResult(Messages.FileIsNotFound.Translate()));
 
-        if (!FileHelper.IsValidPdf(dto.File))
+        if (!UploadPolicy.TryGetValue(dto.Type, out var policy))
             return BadRequest(new ErrorResult(Messages.ThisFileTypeIsNotAllowed.Translate()));
 
-        if (dto.File.Length > 2 * 1024 * 1024) // limit file size to 2 MB
-            return BadRequest(new ErrorResult(Messages.FileIsLargeThan2Mb.Translate().Replace("{value}", "15MB")));
+        if (!policy.Validator(dto.File))
+            return BadRequest(new ErrorResult(Messages.ThisFileTypeIsNotAllowed.Translate()));
 
-        // create file
+        if (dto.File.Length > policy.MaxBytes)
+            return BadRequest(new ErrorResult(
+                Messages.FileIsLargeThan2Mb.Translate().Replace("{value}", policy.FriendlyLimit)));
+
         var originalFileName = Path.GetFileName(dto.File.FileName);
         var hashFileName = Guid.NewGuid().ToString();
         var fileExtension = Path.GetExtension(dto.File.FileName);
-
-        // to secure file remove js code from inside
-        var sanitizedFile = await FileHelper.RemoveJavaScriptFromPdfAsync(dto.File);
-
-        /*// Optional: Scan for Malware (Implement your antivirus scan)
-        if (!await FileHelper.ScanForVirusesAsync(Path.Combine(uploadsFolder, fileName)))
-        {
-            System.IO.File.Delete(Path.Combine(uploadsFolder, fileName)); // Remove infected file
-            return BadRequest("The uploaded file contains malware and has been rejected.");
-        }*/
-        
         var path = dto.Type.ToString();
-        sftpService.UploadFile(path, $"{hashFileName}{fileExtension}", sanitizedFile);
 
-        // or
-        // var path = _utilService.GetEnvFolderPath(dto.Type.ToString());
-        // await FileHelper.WriteFile(dto.File, $"{hashFileName}{fileExtension}", path);
+        // Images don't need PDF JavaScript stripping. When a future FileType maps to PDF,
+        // call FileHelper.RemoveJavaScriptFromPdfAsync(dto.File) before upload.
+        await sftpService.UploadFileAsync(path, $"{hashFileName}{fileExtension}", dto.File);
 
-        // add to database
-        var fileToAdd =
-            new FileToAddDto(originalFileName, hashFileName, fileExtension, sanitizedFile.Length, path, dto.Type);
+        var fileToAdd = new FileToAddDto(
+            originalFileName, hashFileName, fileExtension, dto.File.Length, path, dto.Type);
         await fileService.AddAsync(fileToAdd, dto);
 
         return Ok(new SuccessDataResult<string>(hashFileName, Messages.Success.Translate()));
@@ -73,37 +71,28 @@ public class FileController(
     [HttpDelete]
     public async Task<IActionResult> Delete([FromBody] FileRemoveRequestDto dto)
     {
-        // delete file
         var fileResult = await fileService.GetAsync(dto.HashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
-        sftpService.DeleteFile(fileResult.Data!.Path!, $"{fileResult.Data.HashName}{fileResult.Data.Extension}");
+        await sftpService.DeleteFileAsync(fileResult.Data!.Path!,
+            $"{fileResult.Data.HashName}{fileResult.Data.Extension}");
 
-        // or
-        // var path = Path.Combine(_utilService.GetEnvFolderPath(dto.Type.ToString()), dto.HashName);
-        // FileHelper.DeleteFile(path);
-
-        // remove from database
         var result = await fileService.RemoveAsync(dto);
-
         return Ok(result);
     }
-
 
     [SwaggerOperation(Summary = "download file")]
     [Produces(typeof(void))]
     [HttpGet("download")]
     public async Task<IActionResult> Download([FromQuery] string hashName)
     {
-        // get file from database
         var fileResult = await fileService.GetAsync(hashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
-        // read file as stream
         var fileName = $"{fileResult.Data!.HashName}{fileResult.Data.Extension}";
-        var fileData = sftpService.ReadFile(fileResult.Data!.Path!, fileName);
+        var fileData = await sftpService.ReadFileAsync(fileResult.Data!.Path!, fileName);
 
-        return File(fileData, "APPLICATION/octet-stream", fileName);
+        return File(fileData, "application/octet-stream", fileName);
     }
 
     [HttpGet]
@@ -111,20 +100,23 @@ public class FileController(
     [Produces(typeof(void))]
     public async Task<IActionResult> Get([FromQuery] string hashName)
     {
-        // get file from database
         var fileResult = await fileService.GetAsync(hashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
-        // read file as stream
         var fileName = $"{fileResult.Data!.HashName}{fileResult.Data.Extension}";
-        var fileStream = sftpService.ReadFile(fileResult.Data!.Path!, fileName);
-
-        // or
-        // var path = Path.Combine(_utilService.GetEnvFolderPath(_utilService.GetFolderName(type)), $"{hashName}{file.Data!.Extension}");
-        // var fileStream = System.IO.File.OpenRead(path);
+        var fileStream = await sftpService.ReadFileAsync(fileResult.Data!.Path!, fileName);
 
         if (fileStream is null) return BadRequest(new ErrorResult(Messages.FileIsNotFound.Translate()));
 
-        return File(fileStream, "image/png");
+        var contentType = fileResult.Data.Extension?.ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".pdf" => "application/pdf",
+            _ => "application/octet-stream"
+        };
+
+        return File(fileStream, contentType);
     }
 }

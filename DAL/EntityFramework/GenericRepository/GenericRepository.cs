@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using DAL.EntityFramework.Context;
 using ENTITIES.Entities.Generic;
 using Microsoft.EntityFrameworkCore;
@@ -8,165 +8,112 @@ namespace DAL.EntityFramework.GenericRepository;
 public class GenericRepository<TEntity>(DataContext ctx) : IGenericRepository<TEntity>
     where TEntity : class
 {
+    // ---- writes ----
+
     public async Task<TEntity> AddAsync(TEntity entity)
     {
-        var newEntity = ctx.CreateProxy<TEntity>();
-
-        ctx.Entry(newEntity).CurrentValues.SetValues(entity);
-        ctx.Entry(entity).State = EntityState.Detached;
-        await ctx.AddAsync(newEntity);
-
-        return newEntity;
-    }
-
-    public async Task<List<TEntity>> AddRangeAsync(List<TEntity> entity)
-    {
-        await ctx.AddRangeAsync(entity);
+        await ctx.Set<TEntity>().AddAsync(entity);
         return entity;
     }
 
-    public void Delete(TEntity entity)
+    public async Task<List<TEntity>> AddRangeAsync(List<TEntity> entities)
     {
-        ctx.Remove(entity);
-    }
-
-    public void SoftDelete(TEntity entity)
-    {
-        var property = entity.GetType().GetProperty(nameof(Auditable.IsDeleted));
-
-        if (property is null)
-            throw new ArgumentException(
-                @$"The property with type: {entity.GetType()} can not be SoftDeleted, 
-                        because it doesn't contains {nameof(Auditable.IsDeleted)} property, 
-                        and did not implemented {typeof(Auditable)}.");
-
-        if (((bool?)property.GetValue(entity)!).Value)
-            throw new Exception("This entity was already deleted.");
-
-        property.SetValue(entity, true);
-
-        var updatedEntity = ctx.CreateProxy<TEntity>();
-
-        ctx.Entry(updatedEntity).CurrentValues.SetValues(entity);
-        ctx.Entry(entity).State = EntityState.Detached;
-        ctx.Update(updatedEntity);
-    }
-
-    public async Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
-    {
-        return ignoreQueryFilters
-            ? await ctx.Set<TEntity>().IgnoreQueryFilters().FirstOrDefaultAsync(filter)
-            : await ctx.Set<TEntity>().FirstOrDefaultAsync(filter);
-    }
-
-    public async Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>>? filter = null,
-        bool ignoreQueryFilters = false)
-    {
-        return filter is null
-            ? ignoreQueryFilters
-                ? await ctx.Set<TEntity>().IgnoreQueryFilters().ToListAsync()
-                : await ctx.Set<TEntity>().ToListAsync()
-            : ignoreQueryFilters
-                ? await ctx.Set<TEntity>().Where(filter).IgnoreQueryFilters().ToListAsync()
-                : await ctx.Set<TEntity>().Where(filter).ToListAsync();
-    }
-
-    public IQueryable<TEntity> GetList(Expression<Func<TEntity, bool>>? filter = null, bool ignoreQueryFilters = false)
-    {
-        return filter is null
-            ? ignoreQueryFilters
-                ? ctx.Set<TEntity>().IgnoreQueryFilters()
-                : ctx.Set<TEntity>()
-            : ignoreQueryFilters
-                ? ctx.Set<TEntity>().Where(filter).IgnoreQueryFilters()
-                : ctx.Set<TEntity>().Where(filter);
-    }
-
-    public async Task<TEntity?> GetAsNoTrackingAsync(Expression<Func<TEntity, bool>> filter)
-    {
-        return await ctx.Set<TEntity>().AsNoTracking().SingleOrDefaultAsync(filter);
-    }
-
-    public IQueryable<TEntity> GetAsNoTrackingList(Expression<Func<TEntity, bool>>? filter = null)
-    {
-        return (filter is null
-            ? ctx.Set<TEntity>().AsNoTracking()
-            : ctx.Set<TEntity>().Where(filter)).AsNoTracking();
+        await ctx.Set<TEntity>().AddRangeAsync(entities);
+        return entities;
     }
 
     public TEntity Update(TEntity entity)
     {
-        var updatedEntity = ctx.CreateProxy<TEntity>();
-
-        ctx.Entry(updatedEntity).CurrentValues.SetValues(entity);
-        ctx.Entry(entity).State = EntityState.Detached;
-        ctx.Update(updatedEntity);
-
-        return updatedEntity;
-    }
-
-    public List<TEntity> UpdateRange(List<TEntity> entity)
-    {
-        ctx.UpdateRange(entity);
+        ctx.Set<TEntity>().Update(entity);
         return entity;
     }
 
-    public async Task<int> CountAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    public List<TEntity> UpdateRange(List<TEntity> entities)
     {
-        return ignoreQueryFilters
-            ? await ctx.Set<TEntity>().IgnoreQueryFilters().CountAsync(filter)
-            : await ctx.Set<TEntity>().CountAsync(filter);
+        ctx.Set<TEntity>().UpdateRange(entities);
+        return entities;
     }
 
-    public async Task<bool> AnyAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    public void Delete(TEntity entity)
     {
-        return ignoreQueryFilters
-            ? await ctx.Set<TEntity>().IgnoreQueryFilters().AnyAsync(filter)
-            : await ctx.Set<TEntity>().AnyAsync(filter);
+        ctx.Set<TEntity>().Remove(entity);
     }
 
-    public async Task<bool> AllAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    public void SoftDelete(TEntity entity)
     {
-        return ignoreQueryFilters
-            ? await ctx.Set<TEntity>().IgnoreQueryFilters().AllAsync(filter)
-            : await ctx.Set<TEntity>().AllAsync(filter);
+        if (entity is not Auditable auditable)
+            throw new InvalidOperationException(
+                $"Type {typeof(TEntity).Name} cannot be soft-deleted; it does not inherit {nameof(Auditable)}.");
+
+        if (auditable.IsDeleted)
+            throw new InvalidOperationException("Entity is already soft-deleted.");
+
+        auditable.IsDeleted = true;
+        ctx.Set<TEntity>().Update(entity);
     }
 
-    public async Task<TEntity?> FindAsync(int id)
+    // ---- reads ----
+
+    public Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
     {
-        return await ctx.Set<TEntity>().FindAsync(id);
+        return Query(ignoreQueryFilters).FirstOrDefaultAsync(filter);
     }
 
-    public async Task<TEntity?> SingleOrDefaultAsync(Expression<Func<TEntity, bool>> filter,
+    public Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>>? filter = null,
         bool ignoreQueryFilters = false)
     {
-        return ignoreQueryFilters
-            ? await ctx.Set<TEntity>().IgnoreQueryFilters().SingleOrDefaultAsync(filter)
-            : await ctx.Set<TEntity>().SingleOrDefaultAsync(filter);
+        return (filter is null ? Query(ignoreQueryFilters) : Query(ignoreQueryFilters).Where(filter)).ToListAsync();
     }
 
-    public async Task<TEntity?> SingleAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    public IQueryable<TEntity> GetList(Expression<Func<TEntity, bool>>? filter = null, bool ignoreQueryFilters = false)
     {
-        return ignoreQueryFilters
-            ? await ctx.Set<TEntity>().IgnoreQueryFilters().SingleAsync(filter)
-            : await ctx.Set<TEntity>().SingleAsync(filter);
+        return filter is null ? Query(ignoreQueryFilters) : Query(ignoreQueryFilters).Where(filter);
     }
 
-    public async Task<TEntity?> FirstAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    public Task<TEntity?> GetAsNoTrackingAsync(Expression<Func<TEntity, bool>> filter)
     {
-        return ignoreQueryFilters
-            ? await ctx.Set<TEntity>().IgnoreQueryFilters().FirstAsync(filter)
-            : await ctx.Set<TEntity>().FirstAsync(filter);
+        return ctx.Set<TEntity>().AsNoTracking().SingleOrDefaultAsync(filter);
     }
 
-    // public async Task<IQueryable> GetListAsync(Expression<Func<TEntity, bool>>? filter = null, bool ignoreQueryFilters = false)
-    // {
-    //     return filter is null
-    //         ? ignoreQueryFilters
-    //             ? await _ctx.Set<TEntity>().IgnoreQueryFilters().ToListAsync()
-    //             : await _ctx.Set<TEntity>().ToListAsync()
-    //         : ignoreQueryFilters
-    //             ? await _ctx.Set<TEntity>().Where(filter).IgnoreQueryFilters().ToListAsync()
-    //             : await _ctx.Set<TEntity>().Where(filter).ToListAsync();
-    // }
+    public IQueryable<TEntity> GetAsNoTrackingList(Expression<Func<TEntity, bool>>? filter = null)
+    {
+        return filter is null
+            ? ctx.Set<TEntity>().AsNoTracking()
+            : ctx.Set<TEntity>().AsNoTracking().Where(filter);
+    }
+
+    public Task<int> CountAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    {
+        return Query(ignoreQueryFilters).CountAsync(filter);
+    }
+
+    public Task<bool> AnyAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    {
+        return Query(ignoreQueryFilters).AnyAsync(filter);
+    }
+
+    public Task<bool> AllAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    {
+        return Query(ignoreQueryFilters).AllAsync(filter);
+    }
+
+    public Task<TEntity?> SingleOrDefaultAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    {
+        return Query(ignoreQueryFilters).SingleOrDefaultAsync(filter);
+    }
+
+    public Task<TEntity?> SingleAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    {
+        return Query(ignoreQueryFilters).SingleAsync(filter)!;
+    }
+
+    public Task<TEntity?> FirstAsync(Expression<Func<TEntity, bool>> filter, bool ignoreQueryFilters = false)
+    {
+        return Query(ignoreQueryFilters).FirstAsync(filter)!;
+    }
+
+    private IQueryable<TEntity> Query(bool ignoreQueryFilters)
+    {
+        return ignoreQueryFilters ? ctx.Set<TEntity>().IgnoreQueryFilters() : ctx.Set<TEntity>();
+    }
 }

@@ -1,4 +1,4 @@
-﻿using DAL.EntityFramework.Abstract;
+using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.Context;
 using DAL.EntityFramework.GenericRepository;
 using ENTITIES.Entities;
@@ -8,24 +8,24 @@ namespace DAL.EntityFramework.Concrete;
 
 public class RoleRepository(DataContext dataContext) : GenericRepository<Role>(dataContext), IRoleRepository
 {
-    private readonly DataContext _dataContext = dataContext;
-
     public Role UpdateRole(Role role)
     {
-        _dataContext.Roles.Update(role);
+        dataContext.Roles.Update(role);
         return role;
     }
 
     public async Task ClearRolePermissionsAync(Guid roleId)
     {
-        var entity = await _dataContext.Roles.FindAsync(roleId);
-        entity!.Permissions!.Clear();
-        _dataContext.Entry(entity).State = EntityState.Detached;
-        await _dataContext.SaveChangesAsync();
+        var entity = await dataContext.Roles
+            .Include(r => r.Permissions)
+            .FirstOrDefaultAsync(r => r.Id == roleId);
+
+        entity?.Permissions.Clear();
+        // Commit is owned by IUnitOfWork; the caller (RoleService.UpdateAsync) commits once.
     }
 
     public async Task AddRoleAsync(Role role)
     {
-        await _dataContext.Roles.AddAsync(role);
+        await dataContext.Roles.AddAsync(role);
     }
 }

@@ -1,6 +1,6 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CORE.Localization;
-using DAL.EntityFramework.UnitOfWork;
+using DAL.EntityFramework.Abstract;
 using DTO.Organization;
 using DTO.Responses;
 using MediatR;
@@ -8,25 +8,16 @@ using MEDIATRS.OrganizationCQRS.Queries;
 
 namespace MEDIATRS.OrganizationCQRS.Handlers;
 
-public class
-    GetOrganizationListHandler : IRequestHandler<GetOrganizationListQuery,
-    IDataResult<List<OrganizationToListDto>>>
+public class GetOrganizationListHandler(
+    IOrganizationRepository organizationRepository,
+    IMapper mapper) : IRequestHandler<GetOrganizationListQuery, IDataResult<List<OrganizationToListDto>>>
 {
-    private readonly IMapper _mapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public GetOrganizationListHandler(IUnitOfWork unitOfWork, IMapper mapper)
-    {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
-    }
-
     public async Task<IDataResult<List<OrganizationToListDto>>> Handle(
         GetOrganizationListQuery request,
         CancellationToken cancellationToken)
     {
-        var data = await _unitOfWork.OrganizationRepository.GetListAsync();
-        var result = _mapper.Map<List<OrganizationToListDto>>(data);
+        var data = await organizationRepository.GetListAsync();
+        var result = mapper.Map<List<OrganizationToListDto>>(data);
 
         return new SuccessDataResult<List<OrganizationToListDto>>(result, Messages.Success.Translate());
     }
