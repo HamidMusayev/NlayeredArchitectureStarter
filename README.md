@@ -1,70 +1,140 @@
-# NLayered Starter Project
+# NLayered Architecture Starter
 
-This is a starter project built with ASP.NET Core, featuring a variety of integrated services and configurations to help you get started quickly.
+A pragmatic ASP.NET Core 10 starter you can fork to begin a real product. Clear N-layer split, JWT auth, EF Core + PostgreSQL, ready-to-go examples of MediatR/CQRS, GraphQL, Redis, MongoDB, Elasticsearch, Hangfire, SignalR, Refit, and more — every example is wired and runnable, but each one is opt-in via configuration.
 
-## Features
+---
 
-- **API Versioning**: Supports multiple API versions using URL segments, headers, and media types.
-- **Rate Limiting**: Configured to limit the number of requests to prevent abuse.
-- **Repository Pattern**: Implements the repository pattern for data access.
-- **SignalR**: Real-time web functionality using SignalR.
-- **Unit of Work**: Manages transactions and coordinates changes across multiple repositories.
-- **Output Caching**: Caches responses to improve performance.
-- **Redis**: Configurable Redis support for caching and other purposes.
-- **MongoDB**: Configurable MongoDB support for NoSQL database operations.
-- **Elasticsearch**: Configurable Elasticsearch support for search and analytics.
-- **MediatR**: Implements the mediator pattern for handling requests and notifications.
-- **CQRS**: Implements the Command Query Responsibility Segregation pattern.
-- **MiniProfiler**: Integrated MiniProfiler for performance profiling.
-- **Refit**: Simplifies HTTP API calls with Refit clients.
-- **GraphQL**: Supports GraphQL queries and mutations with Voyager UI.
-- **Authentication**: Configurable authentication settings.
-- **CORS**: Configured to allow cross-origin requests.
-- **Exception Handling**: Centralized exception handling with NummyExceptionHandler.
-- **HTTP Logging**: Logs HTTP requests and responses for debugging and monitoring.
-- **Code Logging**: Logs code execution for debugging and monitoring.
-- **Swagger**: Integrated Swagger for API documentation.
-- **Localization**: Middleware for handling localization.
-- **Static Files**: Serves static files.
-- **FluentValidation**: Validates models using FluentValidation.
-- **AutoMapper**: Maps objects using AutoMapper.
-- **Entity Framework Core**: Configured for PostgreSQL database access.
-- **Cryptography**: Configurable cryptography settings.
-- **SFTP**: Configurable SFTP server settings.
-- **JWT Authentication**: Secure authentication using JSON Web Tokens.
-- **Background Services**: Support for running background tasks.
-- **Hangfire**: Integrated Hangfire for background job processing.
+## Quick start
+
+```bash
+git clone <your-fork-url>
+cd NlayeredArchitectureStarter
+# 1. point ConnectionStrings.AppDb at a Postgres instance (or run `docker compose up`)
+# 2. run EF migrations
+dotnet ef --startup-project API --project DAL database update --context DataContext
+# 3. run the API
+dotnet run --project API
+```
+
+Default URL: **https://localhost:7086** (Swagger opens automatically).
+
+Try the API with the included [`requests.http`](./requests.http) — works in Rider, VS Code (REST Client extension) and Visual Studio. Open it, fire `Login`, and follow the chain.
+
+Default seeded user:
+
+```
+email:    test@test.tst
+password: testtest
+```
+
+---
+
+## Stack
+
+| Layer            | Tech                                                                |
+|------------------|---------------------------------------------------------------------|
+| API              | ASP.NET Core 10, JWT Bearer, Swagger, Hangfire, SignalR, GraphQL (HotChocolate) |
+| Business         | MediatR (CQRS), FluentValidation, AutoMapper                        |
+| Data             | EF Core 10 + Npgsql, Generic Repository, Unit of Work               |
+| Optional         | Redis (Redis.OM), MongoDB, Elasticsearch, RabbitMQ-ready             |
+| Infra utilities  | Refit HTTP client, MailKit, Twilio, SSH.NET (SFTP)                  |
+| Observability    | Nummy code/exception/HTTP/health loggers, MiniProfiler              |
+
+---
+
+## Project layout
+
+```
+API/         Controllers, filters, GraphQL types, SignalR hubs, DI container, Program.cs
+BLL/         Business services (interface + concrete), AutoMapper profiles, file-type handlers
+CORE/        Cross-cutting: config records, abstractions (ICurrentUser, IJwtFactory, IPasswordHasher, IMailService, ISmsService, IEncryptionService, IPaginationContext, …), helpers
+DAL/         EF Core context, generic + entity repositories, IUnitOfWork, ElasticSearch / MongoDB / Redis adapters
+DTO/         Request/response records + FluentValidation validators
+ENTITIES/    Domain entities, Auditable base, enums
+MEDIATRS/    CQRS commands, queries, handlers (Organization example)
+REFITS/      Refit HTTP client interfaces (ToDo example)
+TESTS/       xUnit tests
+NBOOMERS/    Load-test runner (NBomber)
+```
+
+### Layering rules
+
+```
+Controllers / GraphQL → BLL services → DAL repositories
+                                    ↘ IUnitOfWork (transactions)
+                       (no controller → repository shortcut)
+```
+
+`IQueryable<T>` never crosses the BLL boundary. The GraphQL `Query` is allowed to depend on repositories directly because it is itself a read projection.
+
+---
+
+## Built-in features
+
+- **Auth** — JWT bearer, refresh tokens, custom `[ValidateToken]` action filter, password reset via OTP
+- **AuthZ** — Hangfire dashboard + GraphQL endpoint both require a valid JWT
+- **Auditing** — every `Auditable` entity gets `CreatedAt`, `CreatedById`, `ModifiedAt`, `ModifiedBy`, `DeletedAt`, `DeletedBy`, `IsDeleted` filled automatically from `ICurrentUser`
+- **Soft delete** — global query filter on `IsDeleted` + `repository.SoftDelete(entity)`
+- **Encryption** — `IEncryptionService` (AES) used for user-id JWT claim
+- **Password hashing** — `IPasswordHasher` (PBKDF2-SHA512, 100k iters, per-user salt)
+- **Email** — `IMailService` via MailKit
+- **SMS** — `ISmsService` via Twilio
+- **File uploads** — type-aware policy (per-`FileType` validators + max size), JS-stripping for PDFs available via `FileHelper`
+- **CQRS** — `MEDIATRS/OrganizationCQRS` is a complete CRUD slice you can copy
+- **GraphQL** — `Role` query with projection / sorting / filtering pushed down to SQL; audit columns hidden via `ObjectType<>`
+- **Background jobs** — Hangfire with PostgreSQL storage; sample recurring `CounterJob`
+- **Health check** — `/nummy/health`
+- **Rate limit** — fixed-window per-user, 5 req / 10 s (configurable in `RegisterRateLimit`)
+- **Localization** — `lang` header switches `MsgResource` translations (az / en / ru)
+
+---
 
 ## Configuration
 
-The project uses `appsettings.Development.json` for configuration. Key settings include:
+Settings live in `appsettings.Development.json` and `appsettings.Production.json` under the `ConfigSettings` root. Strongly-typed via `CORE/Config/ConfigSettings.cs`.
 
-- **AuthSettings**: JWT authentication settings.
-- **ConnectionStrings**: Database connection strings.
-- **MailSettings**: Email server settings.
-- **RedisSettings**: Redis connection settings.
-- **ElasticSearchSettings**: Elasticsearch connection settings.
-- **MongoDbSettings**: MongoDB connection settings.
-- **CryptographySettings**: Cryptography settings.
-- **SftpSettings**: SFTP server settings.
-- **SwaggerSettings**: Swagger UI settings.
-- **RequestSettings**: Request settings.
-- **ToDoClientSettings**: ToDo client settings.
+Toggle subsystems with the `IsEnabled` flags:
 
-## Getting Started
-
-1. Clone the repository.
-2. Update the configuration settings in `appsettings.Development.json`.
-3. Build and run the project using your preferred IDE (e.g., JetBrains Rider).
-
-## Running the Application
-
-To run the application, use the following command:
-
-```sh
-dotnet run
+```jsonc
+"RedisSettings":         { "IsEnabled": false, ... },
+"ElasticSearchSettings": { "IsEnabled": false, ... },
+"MongoDbSettings":       { "IsEnabled": true,  ... },
+"SwaggerSettings":       { "IsEnabled": true,  ... }
 ```
+
+> Secrets (`AuthSettings.SecretKey`, `CryptographySettings.*`, `TwilioSettings.AuthToken`, mail/SFTP passwords) ship with placeholder values. Move them to **User Secrets** (`dotnet user-secrets`) or your platform's secret store before deployment.
+
+---
+
+## Dev URLs
+
+| Endpoint           | Path                  | Auth |
+|--------------------|-----------------------|------|
+| Swagger UI         | `/swagger`            | open |
+| GraphQL            | `/graphql`            | JWT  |
+| GraphQL Voyager    | `/graphql-voyager`    | open |
+| Hangfire dashboard | `/api/hangfire`       | JWT  |
+| Health check       | `/nummy/health`       | open |
+| SignalR hub        | `/userHub`            | JWT  |
+
+---
+
+## Tests
+
+```bash
+dotnet test
+```
+
+The `TESTS` project has controller-level examples using xUnit + Moq. The `NBOOMERS` project is a separate NBomber-based load runner.
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+---
 
 ## License
 
-This project is licensed under the MIT License.
+MIT.

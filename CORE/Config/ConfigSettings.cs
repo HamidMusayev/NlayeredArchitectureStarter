@@ -1,4 +1,4 @@
-﻿namespace CORE.Config;
+namespace CORE.Config;
 
 public record ConfigSettings
 {
@@ -14,4 +14,5 @@ public record ConfigSettings
     public MailSettings MailSettings { get; set; } = default!;
     public SftpSettings SftpSettings { get; set; } = default!;
     public NummySettings NummySettings { get; set; } = default!;
+    public TwilioSettings TwilioSettings { get; set; } = default!;
 }

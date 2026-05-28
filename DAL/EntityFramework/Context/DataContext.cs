@@ -7,7 +7,7 @@ using File = ENTITIES.Entities.File;
 
 namespace DAL.EntityFramework.Context;
 
-public class DataContext(DbContextOptions<DataContext> options, IUtilService utilService)
+public class DataContext(DbContextOptions<DataContext> options, ICurrentUser currentUser)
     : DbContext(options)
 {
     public required DbSet<User> Users { get; set; }
@@ -50,11 +50,8 @@ public class DataContext(DbContextOptions<DataContext> options, IUtilService uti
             switch (entityEntry.State)
             {
                 case EntityState.Added:
-                    // var originalValues = entityEntry.OriginalValues.ToObject();
-                    // var currentValues = entityEntry.CurrentValues.ToObject();
                     ((Auditable)entityEntry.Entity).CreatedAt = DateTime.UtcNow;
-                    ((Auditable)entityEntry.Entity).CreatedById =
-                        utilService.GetUserIdFromToken();
+                    ((Auditable)entityEntry.Entity).CreatedById = currentUser.UserId;
                     break;
                 case EntityState.Modified:
                 {
@@ -71,14 +68,12 @@ public class DataContext(DbContextOptions<DataContext> options, IUtilService uti
                             .IsModified = false;
 
                         ((Auditable)entityEntry.Entity).DeletedAt = DateTime.UtcNow;
-                        ((Auditable)entityEntry.Entity).DeletedBy =
-                            utilService.GetUserIdFromToken();
+                        ((Auditable)entityEntry.Entity).DeletedBy = currentUser.UserId;
                     }
                     else
                     {
                         ((Auditable)entityEntry.Entity).ModifiedAt = DateTime.UtcNow;
-                        ((Auditable)entityEntry.Entity).ModifiedBy =
-                            utilService.GetUserIdFromToken();
+                        ((Auditable)entityEntry.Entity).ModifiedBy = currentUser.UserId;
                     }
 
                     break;

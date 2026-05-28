@@ -1,4 +1,4 @@
-﻿namespace CORE.Config;
+namespace CORE.Config;
 
 public record MailSettings
 {
@@ -8,4 +8,9 @@ public record MailSettings
     public required string Subject { get; set; }
     public required string Host { get; set; }
     public required string Port { get; set; }
+
+    /// <summary>
+    ///     When true, MailKit uses STARTTLS (or implicit SSL on port 465).
+    /// </summary>
+    public bool EnableSsl { get; set; } = true;
 }

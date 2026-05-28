@@ -16,7 +16,7 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class UserController(IUserService userService, IUtilService utilService, IAuthService authService)
+public class UserController(IUserService userService, IJwtService jwtService, IAuthService authService)
     : ControllerBase
 {
     [SwaggerOperation(Summary = "get users as paginated list")]
@@ -42,7 +42,7 @@ public class UserController(IUserService userService, IUtilService utilService, 
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfileInfo()
     {
-        var userId = utilService.GetUserIdFromToken();
+        var userId = jwtService.GetUserIdFromToken();
         if (userId is null)
             return Unauthorized(new ErrorResult(Messages.CanNotFoundUserIdInYourAccessToken.Translate()));
 

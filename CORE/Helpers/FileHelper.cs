@@ -5,6 +5,15 @@ namespace CORE.Helpers;
 
 public static class FileHelper
 {
+    private static readonly HashSet<string> ImageExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp" };
+
+    private static readonly HashSet<string> ImageMimeTypes =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg", "image/png", "image/webp"
+        };
+
     public static async Task WriteFile(IFormFile file, string name, string path)
     {
         if (!Directory.Exists(path)) Directory.CreateDirectory(path);
@@ -48,11 +57,16 @@ public static class FileHelper
 
     public static bool IsValidPdf(IFormFile file)
     {
-        if (Path.GetExtension(file.FileName).ToLower() != ".pdf")
+        if (Path.GetExtension(file.FileName).ToLowerInvariant() != ".pdf")
             return false;
 
-        var validMimeTypes = new List<string> { "application/pdf" };
-        return validMimeTypes.Contains(file.ContentType.ToLower());
+        return file.ContentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsValidImage(IFormFile file)
+    {
+        var ext = Path.GetExtension(file.FileName);
+        return ImageExtensions.Contains(ext) && ImageMimeTypes.Contains(file.ContentType);
     }
 
     /*public async Task<bool> ScanForVirusesAsync(string filePath)

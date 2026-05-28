@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using API.Containers;
 using API.Filters;
-using API.Graphql.Role;
+using API.Graphql.Roles;
 using API.HangfireJobs;
 using API.Hubs;
 using API.Middlewares;
@@ -68,7 +68,6 @@ if (config.MongoDbSettings.IsEnabled) builder.Services.RegisterMongoDb();
 builder.Services.Configure<IISServerOptions>(options => options.MaxRequestBodySize = 60 * 1024 * 1024);
 
 builder.Services.RegisterRepositories();
-builder.Services.RegisterSignalRHubs();
 builder.Services.RegisterUnitOfWork();
 builder.Services.RegisterApiVersioning();
 builder.Services.RegisterRateLimit();
@@ -78,6 +77,8 @@ builder.Services.RegisterMediatr();
 builder.Services.AddGraphQLServer()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
+    .AddType<RoleType>()
+    .AddType<PermissionType>()
     .AddProjections()
     .AddSorting()
     .AddFiltering();
@@ -207,7 +208,7 @@ app.MapControllers();
 
 app.MapHub<UserHub>("/userHub");
 
-app.MapGraphQL((PathString)"/graphql");
+app.MapGraphQL((PathString)"/graphql").RequireAuthorization();
 
 app.UseGraphQLVoyager("/graphql-voyager", new VoyagerOptions
 {

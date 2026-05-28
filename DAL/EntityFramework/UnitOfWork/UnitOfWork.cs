@@ -1,57 +1,33 @@
-using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.Context;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace DAL.EntityFramework.UnitOfWork;
 
-public sealed class UnitOfWork(
-    DataContext dataContext,
-    IFileRepository fileRepository,
-    IOrganizationRepository organizationRepository,
-    IPermissionRepository permissionRepository,
-    IRoleRepository roleRepository,
-    ITokenRepository tokenRepository,
-    IUserRepository userRepository)
-    : IUnitOfWork
+public sealed class UnitOfWork(DataContext context) : IUnitOfWork
 {
-    private bool _isDisposed;
-
-    public IFileRepository FileRepository { get; set; } = fileRepository;
-    public IOrganizationRepository OrganizationRepository { get; set; } = organizationRepository;
-    public IPermissionRepository PermissionRepository { get; set; } = permissionRepository;
-    public IRoleRepository RoleRepository { get; set; } = roleRepository;
-    public ITokenRepository TokenRepository { get; set; } = tokenRepository;
-    public IUserRepository UserRepository { get; set; } = userRepository;
-
-    public async Task CommitAsync()
+    public Task<int> CommitAsync(CancellationToken ct = default)
     {
-        await dataContext.SaveChangesAsync();
+        return context.SaveChangesAsync(ct);
     }
 
-    public async ValueTask DisposeAsync()
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default)
     {
-        if (!_isDisposed)
+        return context.Database.BeginTransactionAsync(ct);
+    }
+
+    public async Task RunInTransactionAsync(Func<Task> work, CancellationToken ct = default)
+    {
+        await using var tx = await context.Database.BeginTransactionAsync(ct);
+        try
         {
-            _isDisposed = true;
-            await DisposeAsync(true);
-            GC.SuppressFinalize(this);
+            await work();
+            await context.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
         }
-    }
-
-    public void Dispose()
-    {
-        if (_isDisposed) return;
-        _isDisposed = true;
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
-        if (disposing) dataContext.Dispose();
-    }
-
-    private async ValueTask DisposeAsync(bool disposing)
-    {
-        if (disposing) await dataContext.DisposeAsync();
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
     }
 }

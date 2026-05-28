@@ -1,5 +1,6 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CORE.Localization;
+using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
 using DTO.Responses;
 using ENTITIES.Entities;
@@ -8,24 +9,18 @@ using MEDIATRS.OrganizationCQRS.Commands;
 
 namespace MEDIATRS.OrganizationCQRS.Handlers;
 
-public class AddOrganizationHandler : IRequestHandler<AddOrganizationCommand, IResult>
+public class AddOrganizationHandler(
+    IOrganizationRepository organizationRepository,
+    IUnitOfWork unitOfWork,
+    IMapper mapper) : IRequestHandler<AddOrganizationCommand, IResult>
 {
-    private readonly IMapper _mapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public AddOrganizationHandler(IUnitOfWork unitOfWork, IMapper mapper)
-    {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
-    }
-
     public async Task<IResult> Handle(AddOrganizationCommand request,
         CancellationToken cancellationToken)
     {
-        var mapped = _mapper.Map<Organization>(request.Organization);
-        await _unitOfWork.OrganizationRepository.AddAsync(mapped);
+        var mapped = mapper.Map<Organization>(request.Organization);
+        await organizationRepository.AddAsync(mapped);
 
-        await _unitOfWork.CommitAsync();
+        await unitOfWork.CommitAsync(cancellationToken);
 
         return new SuccessResult(Messages.Success.Translate());
     }

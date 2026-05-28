@@ -1,11 +1,11 @@
-﻿using API.Attributes;
+using API.Attributes;
+using DAL.Redis;
 using DTO.Responses;
 using ENTITIES.Entities.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Redis.OM;
-using Redis.OM.Searching;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace API.Controllers;
@@ -14,105 +14,96 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class PersonController(RedisConnectionProvider provider) : ControllerBase
+public class PersonController(IPersonRepository personRepository) : ControllerBase
 {
-    private readonly RedisCollection<Person> _collection = (RedisCollection<Person>)provider.RedisCollection<Person>();
-
     [SwaggerOperation(Summary = "add person to redis")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpPost]
     public async Task<IActionResult> AddPerson([FromBody] Person person)
     {
-        await _collection.InsertAsync(person);
+        await personRepository.AddAsync(person);
         return Ok(new SuccessResult());
     }
 
     [SwaggerOperation(Summary = "filter by age")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpGet("filterAge")]
-    public Task<IActionResult> FilterByAge([FromQuery] int minAge, [FromQuery] int maxAge)
+    public async Task<IActionResult> FilterByAge([FromQuery] int minAge, [FromQuery] int maxAge)
     {
-        var datas = _collection.Where(x => x.Age >= minAge && x.Age <= maxAge).ToList();
-        return Task.FromResult<IActionResult>(Ok(new SuccessDataResult<List<Person>>(datas)));
+        var data = await personRepository.FilterByAgeAsync(minAge, maxAge);
+        return Ok(new SuccessDataResult<List<Person>>(data));
     }
 
     [SwaggerOperation(Summary = "filter by geo")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpGet("filterGeo")]
-    public IActionResult FilterByGeo([FromQuery] double lon, [FromQuery] double lat,
-        [FromQuery] double radius,
-        [FromQuery] string unit)
+    public async Task<IActionResult> FilterByGeo([FromQuery] double lon, [FromQuery] double lat,
+        [FromQuery] double radius, [FromQuery] string unit)
     {
-        return Ok(new SuccessDataResult<List<Person>>(_collection
-            .GeoFilter(x => x.Address!.Location, lon, lat, radius,
-                Enum.Parse<GeoLocDistanceUnit>(unit)).ToList()));
+        var data = await personRepository.FilterByGeoAsync(lon, lat, radius, Enum.Parse<GeoLocDistanceUnit>(unit));
+        return Ok(new SuccessDataResult<List<Person>>(data));
     }
 
     [SwaggerOperation(Summary = "filter by name")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpGet("filterName")]
-    public IActionResult FilterByName([FromQuery] string firstName, [FromQuery] string lastName)
+    public async Task<IActionResult> FilterByName([FromQuery] string firstName, [FromQuery] string lastName)
     {
-        return Ok(new SuccessDataResult<List<Person>>(_collection
-            .Where(x => x.FirstName == firstName && x.LastName == lastName).ToList()));
+        var data = await personRepository.FilterByNameAsync(firstName, lastName);
+        return Ok(new SuccessDataResult<List<Person>>(data));
     }
 
     [SwaggerOperation(Summary = "filter by postal code")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpGet("postalCode")]
-    public IActionResult FilterByPostalCode([FromQuery] string postalCode)
+    public async Task<IActionResult> FilterByPostalCode([FromQuery] string postalCode)
     {
-        return Ok(new SuccessDataResult<List<Person>>(_collection
-            .Where(x => x.Address!.PostalCode == postalCode)
-            .ToList()));
+        var data = await personRepository.FilterByPostalCodeAsync(postalCode);
+        return Ok(new SuccessDataResult<List<Person>>(data));
     }
 
     [SwaggerOperation(Summary = "filter by full text")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpGet("fullText")]
-    public IActionResult FilterByPersonalStatement([FromQuery] string text)
+    public async Task<IActionResult> FilterByPersonalStatement([FromQuery] string text)
     {
-        return Ok(
-            new SuccessDataResult<List<Person>>(_collection.Where(x => x.PersonalStatement == text)
-                .ToList()));
+        var data = await personRepository.FilterByFullTextAsync(text);
+        return Ok(new SuccessDataResult<List<Person>>(data));
     }
 
     [SwaggerOperation(Summary = "filter by street name")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpGet("streetName")]
-    public IActionResult FilterByStreetName([FromQuery] string streetName)
+    public async Task<IActionResult> FilterByStreetName([FromQuery] string streetName)
     {
-        return Ok(new SuccessDataResult<List<Person>>(_collection
-            .Where(x => x.Address!.StreetName == streetName)
-            .ToList()));
+        var data = await personRepository.FilterByStreetNameAsync(streetName);
+        return Ok(new SuccessDataResult<List<Person>>(data));
     }
 
     [SwaggerOperation(Summary = "filter by skill")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpGet("skill")]
-    public IActionResult FilterBySkill([FromQuery] string skill)
+    public async Task<IActionResult> FilterBySkill([FromQuery] string skill)
     {
-        return Ok(
-            new SuccessDataResult<List<Person>>(_collection.Where(x => x.Skills.Contains(skill))
-                .ToList()));
+        var data = await personRepository.FilterBySkillAsync(skill);
+        return Ok(new SuccessDataResult<List<Person>>(data));
     }
 
-    [SwaggerOperation(Summary = "update person to redis")]
+    [SwaggerOperation(Summary = "update person age")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpPatch("updateAge/{id}")]
-    public IActionResult UpdateAge([FromRoute] string id, [FromBody] int newAge)
+    public async Task<IActionResult> UpdateAge([FromRoute] string id, [FromBody] int newAge)
     {
-        foreach (var person in _collection.Where(x => x.Id == id)) person.Age = newAge;
-        _collection.Save();
+        await personRepository.UpdateAgeAsync(id, newAge);
         return Ok(new SuccessResult());
     }
 
     [SwaggerOperation(Summary = "delete person from redis")]
     [SwaggerResponse(StatusCodes.Status200OK)]
     [HttpDelete("{id}")]
-    public IActionResult DeletePerson([FromRoute] string id)
+    public async Task<IActionResult> DeletePerson([FromRoute] string id)
     {
-        provider.Connection.Unlink($"Person:{id}");
+        await personRepository.DeleteAsync(id);
         return Ok(new SuccessResult());
     }
 }

@@ -1,15 +1,10 @@
-using DAL.EntityFramework.Abstract;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace DAL.EntityFramework.UnitOfWork;
 
-public interface IUnitOfWork : IAsyncDisposable, IDisposable
+public interface IUnitOfWork
 {
-    public IFileRepository FileRepository { get; set; }
-    public IOrganizationRepository OrganizationRepository { get; set; }
-    public IPermissionRepository PermissionRepository { get; set; }
-    public IRoleRepository RoleRepository { get; set; }
-    public ITokenRepository TokenRepository { get; set; }
-    public IUserRepository UserRepository { get; set; }
-
-    public Task CommitAsync();
+    Task<int> CommitAsync(CancellationToken ct = default);
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default);
+    Task RunInTransactionAsync(Func<Task> work, CancellationToken ct = default);
 }

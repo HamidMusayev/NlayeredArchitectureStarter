@@ -1,9 +1,9 @@
-﻿using AutoMapper;
+using AutoMapper;
 using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Config;
-using CORE.Helpers;
 using CORE.Localization;
+using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
 using DTO.Auth;
 using DTO.Responses;
@@ -15,16 +15,17 @@ namespace BLL.Concrete;
 
 public class TokenService(
     ConfigSettings configSettings,
+    ITokenRepository tokenRepository,
     IUnitOfWork unitOfWork,
-    IUtilService utilService,
+    IJwtService jwtService,
     IMapper mapper)
     : ITokenService
 {
-    public async Task<IResult> AddAsync(LoginResponseDto dto)
+    public async Task<IResult> AddAsync(LoginResponseDto responseDto)
     {
-        var data = mapper.Map<Token>(dto);
+        var data = mapper.Map<Token>(responseDto);
 
-        await unitOfWork.TokenRepository.AddAsync(data);
+        await tokenRepository.AddAsync(data);
         await unitOfWork.CommitAsync();
 
         return new SuccessResult(Messages.Success.Translate());
@@ -32,7 +33,7 @@ public class TokenService(
 
     public async Task<IDataResult<TokenToListDto>> GetAsync(string accessToken, string refreshToken)
     {
-        var token = await unitOfWork.TokenRepository.GetAsync(m =>
+        var token = await tokenRepository.GetAsync(m =>
             m.AccessToken == accessToken && m.RefreshToken == refreshToken &&
             m.RefreshTokenExpireDate > DateTime.UtcNow);
         if (token == null) return new ErrorDataResult<TokenToListDto>(Messages.PermissionDenied.Translate());
@@ -44,22 +45,21 @@ public class TokenService(
 
     public async Task<IResult> CheckValidationAsync(string accessToken, string refreshToken)
     {
-        return await unitOfWork.TokenRepository.IsValid(accessToken, refreshToken)
+        return await tokenRepository.IsValid(accessToken, refreshToken)
             ? new SuccessResult(Messages.Success.Translate())
             : new ErrorResult(Messages.PermissionDenied.Translate());
     }
 
-    public async Task<IDataResult<LoginResponseDto>> CreateTokenAsync(UserToListDto dto)
+    public async Task<IDataResult<LoginResponseDto>> CreateTokenAsync(UserToListDto listDto)
     {
-        var securityHelper = new SecurityHelper(configSettings, utilService);
         var accessTokenExpireDate =
             DateTime.UtcNow.AddHours(configSettings.AuthSettings.TokenExpirationTimeInHours);
 
         var loginResponseDto = new LoginResponseDto(
-            dto,
-            securityHelper.CreateTokenForUser(dto, accessTokenExpireDate),
+            listDto,
+            jwtService.CreateTokenForUser(listDto, accessTokenExpireDate),
             accessTokenExpireDate,
-            utilService.GenerateRefreshToken(),
+            jwtService.GenerateRefreshToken(),
             accessTokenExpireDate.AddMinutes(configSettings.AuthSettings.RefreshTokenAdditionalMinutes)
         );
 
@@ -70,9 +70,10 @@ public class TokenService(
 
     public async Task<IResult> SoftDeleteAsync(Guid id)
     {
-        var data = await unitOfWork.TokenRepository.GetAsync(m => m.Id == id);
+        var data = await tokenRepository.GetAsync(m => m.Id == id);
+        if (data is null) return new ErrorResult(Messages.DataNotFound.Translate());
 
-        unitOfWork.TokenRepository.SoftDelete(data!);
+        tokenRepository.SoftDelete(data);
         await unitOfWork.CommitAsync();
 
         return new SuccessResult(Messages.Success.Translate());

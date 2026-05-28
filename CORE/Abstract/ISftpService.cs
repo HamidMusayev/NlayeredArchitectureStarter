@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 
 namespace CORE.Abstract;
 
 public interface ISftpService
 {
-    void UploadFile(string folderPath, string fileName, IFormFile formFile);
-    void DeleteFile(string folderPath, string fileName);
-    byte[] ReadFile(string folderPath, string fileName);
+    Task UploadFileAsync(string folderPath, string fileName, IFormFile formFile,
+        CancellationToken ct = default);
+
+    Task DeleteFileAsync(string folderPath, string fileName, CancellationToken ct = default);
+
+    Task<byte[]> ReadFileAsync(string folderPath, string fileName, CancellationToken ct = default);
 }

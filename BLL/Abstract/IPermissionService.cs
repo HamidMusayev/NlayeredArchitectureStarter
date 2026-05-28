@@ -12,9 +12,9 @@ public interface IPermissionService
 
     Task<IDataResult<PermissionToListDto>> GetAsync(Guid id);
 
-    Task<IResult> AddAsync(PermissionToAddDto dto);
+    Task<IResult> AddAsync(PermissionToAddDto addDto);
 
-    Task<IResult> UpdateAsync(Guid permissionId, PermissionToUpdateDto dto);
+    Task<IResult> UpdateAsync(Guid permissionId, PermissionToUpdateDto updateDto);
 
     Task<IResult> SoftDeleteAsync(Guid id);
 }

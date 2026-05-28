@@ -1,0 +1,423 @@
+### NLayered Starter — REST API request collection
+### Works with JetBrains Rider / VS Code REST Client / Visual Studio .http runner.
+###
+### After /auth/login runs, copy AccessToken into @token (or use response-handler vars below).
+### Variables are defined per-environment in `http-client.env.json` if you prefer.
+
+@baseUrl = https://localhost:7086
+@token = paste-access-token-here
+@refreshToken = paste-refresh-token-here
+@userId = 00000000-0000-0000-0000-000000000000
+@roleId = 00000000-0000-0000-0000-000000000000
+@permissionId = 00000000-0000-0000-0000-000000000000
+@organizationId = 00000000-0000-0000-0000-000000000000
+@hashName = paste-uploaded-file-hash-here
+@lang = en
+
+############################################
+# AUTH
+############################################
+
+### Login (anonymous) — copies AccessToken / RefreshToken into vars
+# @name login
+POST {{baseUrl}}/api/Auth/login
+Content-Type: application/json
+lang: {{lang}}
+
+{
+  "email": "test@test.tst",
+  "password": "testtest"
+}
+
+> {%
+client.global.set("token", response.body.data.accessToken);
+client.global.set("refreshToken", response.body.data.refreshToken);
+%}
+
+### Login via existing token
+GET {{baseUrl}}/api/Auth/login/token
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Refresh access token
+GET {{baseUrl}}/api/Auth/refresh
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Send OTP for password reset
+GET {{baseUrl}}/api/Auth/otp?email=test@test.tst
+
+### Reset password
+POST {{baseUrl}}/api/Auth/password/reset
+Content-Type: application/json
+
+{
+  "email": "test@test.tst",
+  "verificationCode": "123456",
+  "password": "NewPass1!",
+  "passwordConfirmation": "NewPass1!"
+}
+
+### Logout
+POST {{baseUrl}}/api/Auth/logout
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+############################################
+# USERS
+############################################
+
+### List users (paginated)
+GET {{baseUrl}}/api/User/paginate
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+PageIndex: 1
+PageSize: 20
+
+### List all users
+GET {{baseUrl}}/api/User
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Current user profile
+GET {{baseUrl}}/api/User/profile
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Get user by id
+GET {{baseUrl}}/api/User/{{userId}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Create user (anonymous)
+POST {{baseUrl}}/api/User
+Content-Type: application/json
+
+{
+  "username": "jane",
+  "email": "jane@example.com",
+  "contactNumber": "+15551234567",
+  "password": "S3cret!Pass",
+  "passwordConfirmation": "S3cret!Pass",
+  "roleId": null
+}
+
+### Update user
+PUT {{baseUrl}}/api/User/{{userId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+{
+  "email": "jane@example.com",
+  "contactNumber": "+15559876543",
+  "username": "jane",
+  "roleId": null
+}
+
+### Soft-delete user (also revokes all their tokens)
+DELETE {{baseUrl}}/api/User/{{userId}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+############################################
+# ROLES
+############################################
+
+### List roles
+GET {{baseUrl}}/api/Role
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Get role
+GET {{baseUrl}}/api/Role/{{roleId}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Role permissions
+GET {{baseUrl}}/api/Role/{{roleId}}/permissions
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Create role
+POST {{baseUrl}}/api/Role
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+{
+  "name": "Editor",
+  "key": "EDITOR",
+  "permissionIds": []
+}
+
+### Update role
+PUT {{baseUrl}}/api/Role/{{roleId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+{
+  "name": "Editor",
+  "key": "EDITOR",
+  "permissionIds": []
+}
+
+### Soft-delete role
+DELETE {{baseUrl}}/api/Role/{{roleId}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+############################################
+# PERMISSIONS
+############################################
+
+### List permissions (paginated)
+GET {{baseUrl}}/api/Permission/paginate
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+PageIndex: 1
+PageSize: 20
+
+### List permissions
+GET {{baseUrl}}/api/Permission
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Get permission
+GET {{baseUrl}}/api/Permission/{{permissionId}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Create permission
+POST {{baseUrl}}/api/Permission
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+{
+  "name": "Read Users",
+  "key": "USERS_READ"
+}
+
+### Update permission
+PUT {{baseUrl}}/api/Permission/{{permissionId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+{
+  "name": "Read Users",
+  "key": "USERS_READ"
+}
+
+### Soft-delete permission
+DELETE {{baseUrl}}/api/Permission/{{permissionId}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+############################################
+# ORGANIZATIONS  (CQRS via MediatR)
+############################################
+
+### List organizations
+GET {{baseUrl}}/api/Organization
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Get organization
+GET {{baseUrl}}/api/Organization/{{organizationId}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Create organization (anonymous)
+POST {{baseUrl}}/api/Organization
+Content-Type: application/json
+
+{
+  "fullName": "Acme Corporation",
+  "shortName": "Acme",
+  "address": "123 Main St",
+  "parentId": null,
+  "phoneNumber": "+15551112222",
+  "tin": "1234567890",
+  "email": "contact@acme.test",
+  "rekvizit": "REK-001"
+}
+
+### Update organization
+PUT {{baseUrl}}/api/Organization/{{organizationId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+{
+  "fullName": "Acme Corporation",
+  "shortName": "Acme",
+  "address": "123 Main St",
+  "parentId": null,
+  "phoneNumber": "+15551112222",
+  "tin": "1234567890",
+  "email": "contact@acme.test",
+  "rekvizit": "REK-001"
+}
+
+### Soft-delete organization
+DELETE {{baseUrl}}/api/Organization/{{organizationId}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+############################################
+# FILES  (multipart/form-data — picks up local file)
+############################################
+
+### Upload user-profile image
+POST {{baseUrl}}/api/File
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="File"; filename="avatar.png"
+Content-Type: image/png
+
+< ./avatar.png
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="Type"
+
+UserProfile
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="UserId"
+
+{{userId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Get file metadata (returns the binary inline with image/* Content-Type)
+GET {{baseUrl}}/api/File?hashName={{hashName}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Download file (attachment)
+GET {{baseUrl}}/api/File/download?hashName={{hashName}}
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Delete file
+DELETE {{baseUrl}}/api/File
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+{
+  "hashName": "{{hashName}}",
+  "type": "UserProfile",
+  "userId": "{{userId}}",
+  "organizationId": null
+}
+
+############################################
+# HELPER / EXAMPLES
+############################################
+
+### Refit ToDo client demo
+GET {{baseUrl}}/api/Helper/refit/test/todo/get
+
+### Nummy code-logger smoke
+GET {{baseUrl}}/api/Helper/nummy/test/code/log
+
+### Trigger an exception (Nummy exception handler captures it)
+GET {{baseUrl}}/api/Helper/nummy/test/exception/handle
+
+############################################
+# PERSON  (Redis OM example — requires RedisSettings.IsEnabled = true)
+############################################
+
+### Add person
+POST {{baseUrl}}/api/Person
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+{
+  "firstName": "Ada",
+  "lastName": "Lovelace",
+  "age": 36,
+  "personalStatement": "Hello, world.",
+  "skills": ["mathematics"],
+  "address": {
+    "streetName": "Main",
+    "postalCode": "12345"
+  }
+}
+
+### Filter by age
+GET {{baseUrl}}/api/Person/filterAge?minAge=18&maxAge=99
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Filter by name
+GET {{baseUrl}}/api/Person/filterName?firstName=Ada&lastName=Lovelace
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Filter by full-text
+GET {{baseUrl}}/api/Person/fullText?text=Hello
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+### Update age
+PATCH {{baseUrl}}/api/Person/updateAge/some-id
+Content-Type: application/json
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+42
+
+### Delete person
+DELETE {{baseUrl}}/api/Person/some-id
+Authorization: Bearer {{token}}
+RefreshToken: {{refreshToken}}
+
+############################################
+# VERSIONING
+############################################
+
+### Default version (v1)
+GET {{baseUrl}}/api/v1/Versioning
+
+### Version 2
+GET {{baseUrl}}/api/v2/Versioning/42
+
+############################################
+# GRAPHQL  (RequireAuthorization)
+############################################
+
+### List roles
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "query { roles { id name key permissions { id name key } } }"
+}
+
+### Add role (mutation)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "mutation($item: RoleToAddDtoInput!) { addRole(item: $item) { success message } }",
+  "variables": {
+    "item": { "name": "Reviewer", "key": "REVIEWER", "permissionIds": [] }
+  }
+}
+
+############################################
+# DASHBOARDS / DEV UIs
+############################################
+
+### Swagger UI            -> {{baseUrl}}/swagger
+### Hangfire dashboard    -> {{baseUrl}}/api/hangfire   (requires JWT bearer)
+### GraphQL Voyager       -> {{baseUrl}}/graphql-voyager
+### Nummy health          -> {{baseUrl}}/nummy/health

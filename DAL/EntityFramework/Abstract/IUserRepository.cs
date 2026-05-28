@@ -1,4 +1,4 @@
-﻿using DAL.EntityFramework.GenericRepository;
+using DAL.EntityFramework.GenericRepository;
 using ENTITIES.Entities;
 
 namespace DAL.EntityFramework.Abstract;
@@ -9,5 +9,5 @@ public interface IUserRepository : IGenericRepository<User>
 
     Task<string?> GetUserSaltAsync(string userEmail);
 
-    Task UpdateUserAsync(User user);
+    void UpdateUser(User user);
 }

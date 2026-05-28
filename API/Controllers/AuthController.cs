@@ -18,8 +18,9 @@ namespace API.Controllers;
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class AuthController(
     IAuthService authService,
+    IAccountRecoveryService accountRecoveryService,
     ConfigSettings configSettings,
-    IUtilService utilService,
+    IJwtService jwtService,
     ITokenService tokenService)
     : ControllerBase
 {
@@ -43,7 +44,7 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<IActionResult> SendOtp([FromQuery] string email)
     {
-        return Ok(await authService.SendOtpAsync(email));
+        return Ok(await accountRecoveryService.SendOtpAsync(email));
     }
 
     [SwaggerOperation(Summary = "refesh access token")]
@@ -53,7 +54,7 @@ public class AuthController(
     public async Task<IActionResult> Refresh()
     {
         var jwtToken =
-            utilService.TrimToken(
+            jwtService.TrimToken(
                 HttpContext.Request.Headers[configSettings.AuthSettings.HeaderName]!);
         string refreshToken = HttpContext.Request.Headers[configSettings.AuthSettings.RefreshTokenHeaderName]!;
 
@@ -73,7 +74,7 @@ public class AuthController(
     [HttpPost("password/reset")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto request)
     {
-        var response = await authService.ResetPasswordAsync(request);
+        var response = await accountRecoveryService.ResetPasswordAsync(request);
         return Ok(response);
     }
 
@@ -100,7 +101,7 @@ public class AuthController(
     [ValidateToken]
     public async Task<IActionResult> Logout()
     {
-        var accessToken = utilService.TrimToken(utilService.GetTokenString()!);
+        var accessToken = jwtService.TrimToken(jwtService.GetTokenString()!);
         var response = await authService.LogoutAsync(accessToken);
 
         return Ok(response);
