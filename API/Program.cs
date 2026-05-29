@@ -30,7 +30,6 @@ builder.Services
     .AddBackgroundQueue()
     .AddEmailTemplating()
     .AddNotifications()
-    .AddSearch(config)
     .AddIdempotency(config)
     .AddFeatureFlags(config)
     .AddDistributedLock(config)

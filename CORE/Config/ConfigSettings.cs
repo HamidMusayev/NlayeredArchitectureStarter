@@ -26,7 +26,6 @@ public record ConfigSettings
     public MessageBusSettings MessageBusSettings { get; set; } = new();
     public CacheSettings CacheSettings { get; set; } = new();
     public NotificationSettings NotificationSettings { get; set; } = new();
-    public SearchSettings SearchSettings { get; set; } = new();
     public IdempotencySettings IdempotencySettings { get; set; } = new();
     public FeatureFlagSettings FeatureFlagSettings { get; set; } = new();
     public DistributedLockSettings DistributedLockSettings { get; set; } = new();
