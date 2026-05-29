@@ -10,6 +10,10 @@ using IResult = DTO.Responses.IResult;
 
 namespace API.Controllers;
 
+/// <summary>
+///     Role management endpoints: list, single-role lookup with permissions, create (with
+///     permission assignment), update, and soft-delete. All routes require a valid JWT.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

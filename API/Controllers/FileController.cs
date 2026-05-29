@@ -1,6 +1,5 @@
 using API.Attributes;
 using BLL.Abstract;
-using CORE.Abstract;
 using CORE.Helpers;
 using CORE.Localization;
 using DTO.File;
@@ -9,19 +8,25 @@ using ENTITIES.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using STORAGE.Abstract;
 using Swashbuckle.AspNetCore.Annotations;
 using IResult = DTO.Responses.IResult;
 using Path = System.IO.Path;
 
 namespace API.Controllers;
 
+/// <summary>
+///     File upload/download/remove endpoints. Validates file type and size per-type policy,
+///     delegates byte storage to <c>IBlobStorage</c>, and persists metadata via
+///     <c>IFileService</c>. All routes require a valid JWT.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
 public class FileController(
     IFileService fileService,
-    ISftpService sftpService) : ControllerBase
+    IBlobStorage blobStorage) : ControllerBase
 {
     // Per-type upload policy: which extensions are accepted and max byte size.
     // Adding a new FileType requires adding an entry here AND an IFileTypeHandler.
@@ -35,7 +40,7 @@ public class FileController(
     [SwaggerOperation(Summary = "upload file")]
     [Produces(typeof(IDataResult<string>))]
     [HttpPost]
-    public async Task<IActionResult> Upload([FromForm] FileUploadRequestDto dto)
+    public async Task<IActionResult> Upload([FromForm] FileUploadRequestDto dto, CancellationToken ct)
     {
         if (dto.File is null || dto.File.Length == 0)
             return BadRequest(new ErrorResult(Messages.FileIsNotFound.Translate()));
@@ -53,14 +58,18 @@ public class FileController(
         var originalFileName = Path.GetFileName(dto.File.FileName);
         var hashFileName = Guid.NewGuid().ToString();
         var fileExtension = Path.GetExtension(dto.File.FileName);
-        var path = dto.Type.ToString();
+        var container = dto.Type.ToString();
+        var key = $"{hashFileName}{fileExtension}";
 
         // Images don't need PDF JavaScript stripping. When a future FileType maps to PDF,
         // call FileHelper.RemoveJavaScriptFromPdfAsync(dto.File) before upload.
-        await sftpService.UploadFileAsync(path, $"{hashFileName}{fileExtension}", dto.File);
+        await using (var inputStream = dto.File.OpenReadStream())
+        {
+            await blobStorage.SaveAsync(container, key, inputStream, dto.File.ContentType, ct);
+        }
 
         var fileToAdd = new FileToAddDto(
-            originalFileName, hashFileName, fileExtension, dto.File.Length, path, dto.Type);
+            originalFileName, hashFileName, fileExtension, dto.File.Length, container, dto.Type);
         await fileService.AddAsync(fileToAdd, dto);
 
         return Ok(new SuccessDataResult<string>(hashFileName, Messages.Success.Translate()));
@@ -69,13 +78,15 @@ public class FileController(
     [SwaggerOperation(Summary = "delete file")]
     [Produces(typeof(IResult))]
     [HttpDelete]
-    public async Task<IActionResult> Delete([FromBody] FileRemoveRequestDto dto)
+    public async Task<IActionResult> Delete([FromBody] FileRemoveRequestDto dto, CancellationToken ct)
     {
         var fileResult = await fileService.GetAsync(dto.HashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
-        await sftpService.DeleteFileAsync(fileResult.Data!.Path!,
-            $"{fileResult.Data.HashName}{fileResult.Data.Extension}");
+        await blobStorage.DeleteAsync(
+            fileResult.Data!.Path!,
+            $"{fileResult.Data.HashName}{fileResult.Data.Extension}",
+            ct);
 
         var result = await fileService.RemoveAsync(dto);
         return Ok(result);
@@ -84,29 +95,42 @@ public class FileController(
     [SwaggerOperation(Summary = "download file")]
     [Produces(typeof(void))]
     [HttpGet("download")]
-    public async Task<IActionResult> Download([FromQuery] string hashName)
+    public async Task<IActionResult> Download([FromQuery] string hashName, CancellationToken ct)
     {
         var fileResult = await fileService.GetAsync(hashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
         var fileName = $"{fileResult.Data!.HashName}{fileResult.Data.Extension}";
-        var fileData = await sftpService.ReadFileAsync(fileResult.Data!.Path!, fileName);
-
-        return File(fileData, "application/octet-stream", fileName);
+        try
+        {
+            var stream = await blobStorage.OpenAsync(fileResult.Data!.Path!, fileName, ct);
+            return File(stream, "application/octet-stream", fileName);
+        }
+        catch (FileNotFoundException)
+        {
+            return BadRequest(new ErrorResult(Messages.FileIsNotFound.Translate()));
+        }
     }
 
     [HttpGet]
     [SwaggerOperation(Summary = "get file")]
     [Produces(typeof(void))]
-    public async Task<IActionResult> Get([FromQuery] string hashName)
+    public async Task<IActionResult> Get([FromQuery] string hashName, CancellationToken ct)
     {
         var fileResult = await fileService.GetAsync(hashName);
         if (!fileResult.Success) return BadRequest(fileResult);
 
         var fileName = $"{fileResult.Data!.HashName}{fileResult.Data.Extension}";
-        var fileStream = await sftpService.ReadFileAsync(fileResult.Data!.Path!, fileName);
 
-        if (fileStream is null) return BadRequest(new ErrorResult(Messages.FileIsNotFound.Translate()));
+        Stream stream;
+        try
+        {
+            stream = await blobStorage.OpenAsync(fileResult.Data!.Path!, fileName, ct);
+        }
+        catch (FileNotFoundException)
+        {
+            return BadRequest(new ErrorResult(Messages.FileIsNotFound.Translate()));
+        }
 
         var contentType = fileResult.Data.Extension?.ToLowerInvariant() switch
         {
@@ -117,6 +141,6 @@ public class FileController(
             _ => "application/octet-stream"
         };
 
-        return File(fileStream, contentType);
+        return File(stream, contentType);
     }
 }

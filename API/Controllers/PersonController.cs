@@ -10,6 +10,11 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace API.Controllers;
 
+/// <summary>
+///     Redis.OM <c>Person</c> document endpoints — demo of using Redis as a primary store.
+///     Supports create and the full range of Redis Search filter methods (age range, geo, name,
+///     postal code, full-text, street, skill). All routes require a valid JWT.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

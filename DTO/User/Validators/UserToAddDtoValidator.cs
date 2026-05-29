@@ -2,6 +2,10 @@ using FluentValidation;
 
 namespace DTO.User.Validators;
 
+/// <summary>
+///     FluentValidation rules for <see cref="UserToAddDto" />: required fields + password complexity + confirmation
+///     match.
+/// </summary>
 public class UserToAddDtoValidator : AbstractValidator<UserToAddDto>
 {
     public UserToAddDtoValidator()

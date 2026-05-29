@@ -8,6 +8,10 @@ using MEDIATRS.OrganizationCQRS.Queries;
 
 namespace MEDIATRS.OrganizationCQRS.Handlers;
 
+/// <summary>
+///     Handles <see cref="GetOrganizationByIdQuery" />. Fetches the entity by ID, maps to
+///     <c>OrganizationToListDto</c>, and returns <c>ErrorDataResult</c> when not found.
+/// </summary>
 public class GetOrganizationByIdHandler(
     IOrganizationRepository organizationRepository,
     IMapper mapper) : IRequestHandler<GetOrganizationByIdQuery, IDataResult<OrganizationToListDto>>

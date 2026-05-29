@@ -12,6 +12,10 @@ using IResult = DTO.Responses.IResult;
 
 namespace API.Controllers;
 
+/// <summary>
+///     User management endpoints: paginated list, single-user lookup, create, update, soft-delete,
+///     and profile-picture association. All routes require a valid JWT.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

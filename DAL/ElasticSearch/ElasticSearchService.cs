@@ -5,6 +5,12 @@ using Elastic.Transport;
 
 namespace DAL.ElasticSearch;
 
+/// <summary>
+///     Default <see cref="IElasticSearchService{T}" /> backed by the official Elastic.Clients.Elasticsearch SDK.
+///     Authenticates with HTTP Basic credentials from <c>ElasticSearchSettings</c>. Each instance targets
+///     one document type <typeparamref name="T" />; the default index and per-call index overrides are
+///     both supported.
+/// </summary>
 public class ElasticSearchService<T> : IElasticSearchService<T> where T : class
 {
     private readonly ElasticsearchClient _client;

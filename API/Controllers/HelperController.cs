@@ -2,10 +2,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nummy.CodeLogger.Data.Services;
-using REFITS.Clients;
+using REFITS.ToDo;
 
 namespace API.Controllers;
 
+/// <summary>
+///     Miscellaneous helper/demo endpoints: Refit ToDo client smoke-test and a Nummy
+///     CodeLogger demo route. Not for production use — kept to show integration patterns.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

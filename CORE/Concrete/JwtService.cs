@@ -11,6 +11,12 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CORE.Concrete;
 
+/// <summary>
+///     Default <see cref="IJwtService" /> implementation. Mints HMAC-SHA512 access tokens with
+///     the user id (AES-encrypted via <see cref="IEncryptionService" />), name, and role
+///     claims; reads + validates the inbound bearer header for the request-scoped getters.
+///     Refresh tokens are 64 random bytes base64-encoded — never JWTs themselves.
+/// </summary>
 public class JwtService(
     ConfigSettings config,
     IHttpContextAccessor context,

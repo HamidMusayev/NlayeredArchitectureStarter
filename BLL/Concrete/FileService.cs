@@ -10,6 +10,12 @@ using File = ENTITIES.Entities.File;
 
 namespace BLL.Concrete;
 
+/// <summary>
+///     Default <see cref="IFileService" /> implementation. Persists file metadata to the database
+///     then dispatches to the matching <see cref="IFileTypeHandler" /> strategy for side-effects
+///     (e.g. linking the file to a user's profile). Actual byte storage is handled externally by
+///     <c>IBlobStorage</c> before this service is called.
+/// </summary>
 public class FileService(
     IFileRepository fileRepository,
     IUnitOfWork unitOfWork,

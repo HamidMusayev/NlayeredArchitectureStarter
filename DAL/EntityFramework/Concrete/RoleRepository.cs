@@ -6,6 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.EntityFramework.Concrete;
 
+/// <summary>
+///     EF Core implementation of <see cref="IRoleRepository" />. Provides the standard
+///     <see cref="GenericRepository{TEntity}" /> surface plus role-specific operations:
+///     explicit state marking for updates, direct add, and eager-load + permission-clear
+///     (the caller commits via <c>IUnitOfWork</c>).
+/// </summary>
 public class RoleRepository(DataContext dataContext) : GenericRepository<Role>(dataContext), IRoleRepository
 {
     public Role UpdateRole(Role role)

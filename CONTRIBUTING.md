@@ -7,7 +7,7 @@ Thanks for considering a contribution. This project is a starter template — th
 1. **`dotnet build` must finish with 0 errors and no new warnings** before you open a PR.
 2. **Don't break the layering**. See [Layer ownership](#layer-ownership). PRs that have a controller calling a repository directly will be sent back.
 3. **Don't introduce a new top-level abstraction without a real second implementation in mind**. We've already trimmed the audit list once; let's not refill it.
-4. **Code style follows the existing files** — primary constructors, expression bodies, `var` inside method bodies, full names at signatures. No emoji in source.
+4. **Code style follows the existing files** — primary constructors, `var` inside method bodies, no emoji in source. Let Rider's default formatter own the rest (brace placement, XML-doc indentation, expression-bodied vs block-bodied members, `using` imports vs fully-qualified type names). Don't hand-revert formatter output.
 
 ## Branch / PR model
 
@@ -45,15 +45,17 @@ NRE path closed; matches the pattern in RoleService/TokenService.
 
 | Layer         | Owns                                          | Must NOT                                  |
 |---------------|-----------------------------------------------|-------------------------------------------|
-| `API`         | HTTP shape, auth filters, SignalR/GraphQL     | Talk to repositories directly             |
+| `API`         | HTTP shape, auth filters, SignalR             | Talk to repositories directly             |
 | `BLL`         | Business rules, orchestration, DTO mapping    | Return `IQueryable<T>`, return entities   |
 | `DAL`         | EF + repositories, UnitOfWork                 | Reference HTTP / authentication concerns  |
 | `CORE`        | Cross-cutting abstractions + config records   | Reference `BLL`, `DAL`, or `API`          |
 | `ENTITIES`    | Plain entities, `Auditable` base              | Reference any other project               |
 | `DTO`         | Records used at any boundary + validators     | Reference `ENTITIES`                      |
+| `GRAPHQL`     | HotChocolate Query/Mutation/ObjectType<T>     | Hold business rules — delegate to BLL     |
 | `MEDIATRS`    | CQRS handlers                                 | Become a dumping ground for everything    |
+| `STORAGE`     | `IBlobStorage` contract + Filesystem/SFTP/S3 impls | Hold any non-storage abstraction      |
 
-`IQueryable<T>` only crosses into the API project from GraphQL via `IRoleRepository.GetList()`. The trade-off is documented in `API/Graphql/Roles/Query.cs`.
+`IQueryable<T>` only crosses into the API surface from GraphQL via `IRoleRepository.GetList()`. The trade-off is documented in `GRAPHQL/Roles/Query.cs`.
 
 ## Adding a new endpoint (the well-trodden path)
 

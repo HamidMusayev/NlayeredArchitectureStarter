@@ -2,6 +2,10 @@
 
 namespace ENTITIES.Entities;
 
+/// <summary>
+///     Application user — login identity, hashed credentials, optional role + profile picture.
+///     Soft-deleted via <see cref="Auditable.IsDeleted" />.
+/// </summary>
 public class User : Auditable, IEntity
 {
     public required string Username { get; set; }

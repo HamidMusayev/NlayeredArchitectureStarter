@@ -2,6 +2,12 @@
 
 namespace ENTITIES.Entities.Redis;
 
+/// <summary>
+///     Redis.OM example document. Demonstrates how to attach the <c>Document</c> /
+///     <c>Indexed</c> / <c>Searchable</c> attributes so the index-creator hosted service can
+///     register schemas at startup. Used by <c>PersonController</c> to show CRUD against Redis
+///     without touching Postgres.
+/// </summary>
 [Document(StorageType = StorageType.Json, Prefixes = new[] { "Person" })]
 public class Person
 {

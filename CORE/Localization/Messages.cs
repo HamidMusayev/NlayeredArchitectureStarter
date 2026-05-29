@@ -1,5 +1,9 @@
 ﻿namespace CORE.Localization;
 
+/// <summary>
+///     Localized message keys. Each value resolves to a translated string via the
+///     <c>Translate()</c> extension and the matching <c>MsgResource.{culture}.resx</c> file.
+/// </summary>
 public enum Messages
 {
     InvalidModel,

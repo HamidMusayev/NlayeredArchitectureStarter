@@ -2,6 +2,7 @@
 
 namespace DTO.Token;
 
+/// <summary>Outbound representation of a stored token row (used by validation / lookup endpoints).</summary>
 public record TokenToListDto(
     Guid Id,
     UserToListDto User,

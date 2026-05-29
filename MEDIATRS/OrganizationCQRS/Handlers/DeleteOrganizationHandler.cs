@@ -7,6 +7,10 @@ using MEDIATRS.OrganizationCQRS.Commands;
 
 namespace MEDIATRS.OrganizationCQRS.Handlers;
 
+/// <summary>
+///     Handles <see cref="DeleteOrganizationCommand" />. Looks up the entity; returns
+///     <c>ErrorResult</c> if not found, otherwise calls <c>SoftDelete</c> and commits.
+/// </summary>
 public class DeleteOrganizationHandler(
     IOrganizationRepository organizationRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<DeleteOrganizationCommand, IResult>

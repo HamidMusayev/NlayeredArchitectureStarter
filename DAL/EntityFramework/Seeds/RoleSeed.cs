@@ -5,6 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.EntityFramework.Seeds;
 
+/// <summary>
+///     Seeds one <see cref="Role" /> row per <see cref="UserType" /> enum member via EF Core's
+///     <c>HasData</c>. Role <c>Name</c> is pulled from the enum's
+///     <see cref="System.ComponentModel.DescriptionAttribute" />,
+///     falling back to the member name when no attribute is present.
+/// </summary>
 public static class RoleSeed
 {
     public static void Seed(ModelBuilder modelBuilder)

@@ -11,6 +11,10 @@ using ENTITIES.Entities;
 
 namespace BLL.Concrete;
 
+/// <summary>
+///     Default <see cref="IPermissionService" /> implementation. Provides full-list, paginated-list,
+///     single-item lookup, create, update, and soft-delete for <c>Permission</c> records.
+/// </summary>
 public class PermissionService(
     IPermissionRepository permissionRepository,
     IUnitOfWork unitOfWork,

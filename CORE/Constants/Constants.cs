@@ -1,5 +1,6 @@
 ﻿namespace CORE.Constants;
 
+/// <summary>App-wide string constants — CORS policy name, default profile picture, allowed upload extensions.</summary>
 public static class Constants
 {
     public const string EnableAllCorsName = "CorsPolicy";

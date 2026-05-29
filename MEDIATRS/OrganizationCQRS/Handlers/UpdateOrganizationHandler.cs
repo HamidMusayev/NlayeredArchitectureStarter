@@ -9,6 +9,11 @@ using MEDIATRS.OrganizationCQRS.Commands;
 
 namespace MEDIATRS.OrganizationCQRS.Handlers;
 
+/// <summary>
+///     Handles <see cref="UpdateOrganizationCommand" />. Loads the existing row as no-tracking
+///     to preserve <c>LogoFileId</c>, maps the update DTO, and replaces the entity. Returns
+///     <c>ErrorResult</c> when the record is not found.
+/// </summary>
 public class UpdateOrganizationHandler(
     IOrganizationRepository organizationRepository,
     IUnitOfWork unitOfWork,

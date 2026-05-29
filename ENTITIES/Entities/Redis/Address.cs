@@ -2,6 +2,11 @@
 
 namespace ENTITIES.Entities.Redis;
 
+/// <summary>
+///     Embedded Redis.OM sub-document for <see cref="Person" />. Shows how nested objects work
+///     with Redis.OM's <c>CascadeDepth</c> indexing — the parent's <c>[Indexed(CascadeDepth = 1)]</c>
+///     makes these fields filterable too.
+/// </summary>
 public class Address
 {
     [Indexed] public int? StreetNumber { get; set; }

@@ -8,6 +8,10 @@ using MEDIATRS.OrganizationCQRS.Queries;
 
 namespace MEDIATRS.OrganizationCQRS.Handlers;
 
+/// <summary>
+///     Handles <see cref="GetOrganizationListQuery" />. Retrieves all non-deleted organization rows
+///     and maps them to a list of <c>OrganizationToListDto</c>.
+/// </summary>
 public class GetOrganizationListHandler(
     IOrganizationRepository organizationRepository,
     IMapper mapper) : IRequestHandler<GetOrganizationListQuery, IDataResult<List<OrganizationToListDto>>>

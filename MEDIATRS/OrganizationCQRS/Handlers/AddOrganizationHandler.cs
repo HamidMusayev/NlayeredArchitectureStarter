@@ -9,6 +9,10 @@ using MEDIATRS.OrganizationCQRS.Commands;
 
 namespace MEDIATRS.OrganizationCQRS.Handlers;
 
+/// <summary>
+///     Handles <see cref="AddOrganizationCommand" />. Maps the DTO to an entity, persists it
+///     via the repository, and commits the unit of work.
+/// </summary>
 public class AddOrganizationHandler(
     IOrganizationRepository organizationRepository,
     IUnitOfWork unitOfWork,

@@ -12,6 +12,10 @@ using IResult = DTO.Responses.IResult;
 
 namespace API.Controllers;
 
+/// <summary>
+///     Organization management endpoints dispatched via MediatR CQRS handlers. Supports list,
+///     single-organization lookup, create, update, and soft-delete. All routes require a valid JWT.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

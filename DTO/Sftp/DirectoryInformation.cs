@@ -1,5 +1,9 @@
 ﻿namespace DTO.Sftp;
 
+/// <summary>
+///     SFTP directory-listing row. Carries display fields for a file-browser style UI built
+///     on top of <c>ISftpService</c>.
+/// </summary>
 public record DirectoryInformation
 {
     public required string Name { get; set; }

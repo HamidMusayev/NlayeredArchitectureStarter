@@ -4,6 +4,10 @@ using DTO.Responses;
 
 namespace BLL.Abstract;
 
+/// <summary>
+///     Application service for permission management — CRUD, full list, paginated list, and
+///     soft-delete. Permissions are the leaf-level capabilities assigned to Roles.
+/// </summary>
 public interface IPermissionService
 {
     Task<IDataResult<List<PermissionToListDto>>> GetAsync();

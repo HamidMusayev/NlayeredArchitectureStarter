@@ -2,6 +2,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.EntityFramework.Utility;
 
+/// <summary>
+///     EF Core-backed paged result wrapper. Extends <see cref="PaginationInfo" /> with the actual
+///     item slice and a <see cref="Meta" /> sidecar for building <c>?page=N</c> links.
+///     Use <see cref="CreateAsync" /> to materialise from an <see cref="IQueryable{T}" />.
+///     Pass <c>pageIndex = 0</c> only when all rows are intentionally requested.
+/// </summary>
 public class PaginatedList<T> : PaginationInfo
 {
     public PaginatedList(List<T> items, int totalCount, int pageIndex, int pageSize)
@@ -22,9 +28,26 @@ public class PaginatedList<T> : PaginationInfo
         }
 
         Items = items;
+
+        Meta = new PageMeta(
+            PageIndex,
+            pageSize,
+            TotalPageCount,
+            TotalRecordCount,
+            HasPreviousPage,
+            HasNextPage,
+            HasPreviousPage ? PageIndex - 1 : null,
+            HasNextPage ? PageIndex + 1 : null);
     }
 
     public List<T> Items { get; set; }
+
+    /// <summary>
+    ///     Client-friendly pagination sidecar — use this for emitting <c>?page=N</c> links
+    ///     without recomputing on the consumer. Mirrors and supersedes the legacy
+    ///     <see cref="PaginationInfo" /> fields.
+    /// </summary>
+    public PageMeta Meta { get; }
 
     /// <summary>
     ///     Materializes a paged result from an <see cref="IQueryable{T}" />.

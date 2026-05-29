@@ -4,6 +4,12 @@ using Redis.OM.Searching;
 
 namespace DAL.Redis;
 
+/// <summary>
+///     Default <see cref="IPersonRepository" /> implementation backed by a Redis.OM
+///     <see cref="RedisCollection{Person}" />. All filter queries execute as Redis Search commands;
+///     <see cref="UpdateAgeAsync" /> writes back through the collection's change-tracking and calls
+///     <c>Save()</c>. <see cref="DeleteAsync" /> unlinks the key directly via the raw connection.
+/// </summary>
 public class PersonRepository : IPersonRepository
 {
     private readonly RedisCollection<Person> _collection;

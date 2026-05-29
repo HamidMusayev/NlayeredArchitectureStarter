@@ -5,9 +5,15 @@ using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
 using DTO.Auth;
 using DTO.Responses;
+using NOTIFICATIONS.Abstract;
 
 namespace BLL.Concrete;
 
+/// <summary>
+///     Default <see cref="IAccountRecoveryService" /> implementation. Generates a 6-digit OTP,
+///     stores it on the user row, and sends it via <c>IMailService</c>. Password reset verifies
+///     the code, re-hashes with a fresh PBKDF2 salt, and clears the stored code.
+/// </summary>
 public class AccountRecoveryService(
     IUserRepository userRepository,
     IUnitOfWork unitOfWork,

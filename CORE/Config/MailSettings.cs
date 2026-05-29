@@ -1,5 +1,6 @@
 namespace CORE.Config;
 
+/// <summary>SMTP credentials + envelope defaults used by <c>SmtpMailService</c> (MailKit).</summary>
 public record MailSettings
 {
     public required string Address { get; set; }

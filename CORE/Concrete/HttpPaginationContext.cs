@@ -5,6 +5,11 @@ using Microsoft.AspNetCore.Http;
 
 namespace CORE.Concrete;
 
+/// <summary>
+///     Default <see cref="IPaginationContext" /> — reads PageIndex / PageSize from request
+///     headers whose names come from <see cref="RequestSettings" />. Allows BLL code to depend
+///     on a simple pagination abstraction without touching <c>IHttpContextAccessor</c> directly.
+/// </summary>
 public class HttpPaginationContext(ConfigSettings config, IHttpContextAccessor accessor) : IPaginationContext
 {
     public PaginationDto GetPagination()

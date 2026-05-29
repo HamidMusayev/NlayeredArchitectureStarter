@@ -5,6 +5,11 @@ using CORE.Config;
 
 namespace CORE.Concrete;
 
+/// <summary>
+///     AES symmetric encryption with key + IV pulled from <see cref="CryptographySettings" />.
+///     Used to obfuscate the user-id claim inside JWTs so they're opaque to clients but still
+///     round-trippable server-side.
+/// </summary>
 public class AesEncryptionService(ConfigSettings config) : IEncryptionService
 {
     public string Encrypt(string value)

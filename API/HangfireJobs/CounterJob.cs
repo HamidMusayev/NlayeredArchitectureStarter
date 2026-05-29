@@ -4,6 +4,11 @@ using Nummy.CodeLogger.Data.Services;
 
 namespace API.HangfireJobs;
 
+/// <summary>
+///     Demo recurring Hangfire job. Logs an info entry on every run via Nummy CodeLogger.
+///     Registered as a recurring job in <c>HangfireExtensions</c>. Replace with real
+///     background work or remove if not needed in derived projects.
+/// </summary>
 public class CounterJob(INummyCodeLoggerService service)
 {
     [AutomaticRetry(Attempts = 2, OnAttemptsExceeded = AttemptsExceededAction.Fail)]

@@ -30,4 +30,21 @@ public sealed class UnitOfWork(DataContext context) : IUnitOfWork
             throw;
         }
     }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> work, CancellationToken ct = default)
+    {
+        await using var tx = await context.Database.BeginTransactionAsync(ct);
+        try
+        {
+            var result = await work();
+            await context.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return result;
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
 }

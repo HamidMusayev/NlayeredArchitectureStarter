@@ -1,5 +1,10 @@
 namespace CORE.Config;
 
+/// <summary>
+///     Root configuration aggregate — every per-feature settings record hangs off this one
+///     record. Bound from <c>appsettings.json</c> under the <c>ConfigSettings</c> section via
+///     <c>IConfiguration.LoadConfigSettings()</c> and registered as a singleton in DI.
+/// </summary>
 public record ConfigSettings
 {
     public AuthSettings AuthSettings { get; set; } = default!;
@@ -15,4 +20,16 @@ public record ConfigSettings
     public SftpSettings SftpSettings { get; set; } = default!;
     public NummySettings NummySettings { get; set; } = default!;
     public TwilioSettings TwilioSettings { get; set; } = default!;
+    public LoggingSettings LoggingSettings { get; set; } = new();
+    public OpenTelemetrySettings OpenTelemetrySettings { get; set; } = new();
+    public MigrationSettings MigrationSettings { get; set; } = new();
+    public BlobStorageSettings BlobStorageSettings { get; set; } = new();
+    public MessageBusSettings MessageBusSettings { get; set; } = new();
+    public CacheSettings CacheSettings { get; set; } = new();
+    public NotificationSettings NotificationSettings { get; set; } = new();
+    public SearchSettings SearchSettings { get; set; } = new();
+    public IdempotencySettings IdempotencySettings { get; set; } = new();
+    public FeatureFlagSettings FeatureFlagSettings { get; set; } = new();
+    public DistributedLockSettings DistributedLockSettings { get; set; } = new();
+    public MultiTenancySettings MultiTenancySettings { get; set; } = new();
 }

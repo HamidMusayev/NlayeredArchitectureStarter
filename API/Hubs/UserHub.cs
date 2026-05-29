@@ -6,6 +6,11 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace API.Hubs;
 
+/// <summary>
+///     SignalR hub stub for real-time user notifications. Requires JWT bearer authentication
+///     and is exposed with the permissive CORS policy so browser clients can connect.
+///     Extend with typed hub methods (<c>JoinGroup</c>, <c>SendAsync</c>, etc.) as needed.
+/// </summary>
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [EnableCors(Constants.EnableAllCorsName)]
 public class UserHub : Hub

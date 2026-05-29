@@ -3,6 +3,10 @@ using FluentValidation;
 
 namespace DTO.File.Validators;
 
+/// <summary>
+///     FluentValidation rules for <see cref="FileRemoveRequestDto" /> — required hash + ownership keys per
+///     <see cref="FileType" />.
+/// </summary>
 public class FileRemoveRequestDtoValidator : AbstractValidator<FileRemoveRequestDto>
 {
     public FileRemoveRequestDtoValidator()

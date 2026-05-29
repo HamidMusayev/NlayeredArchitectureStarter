@@ -45,13 +45,15 @@ password: testtest
 ## Project layout
 
 ```
-API/         Controllers, filters, GraphQL types, SignalR hubs, DI container, Program.cs
+API/         Controllers, filters, SignalR hubs, DI container, Program.cs
 BLL/         Business services (interface + concrete), AutoMapper profiles, file-type handlers
 CORE/        Cross-cutting: config records, abstractions (ICurrentUser, IJwtFactory, IPasswordHasher, IMailService, ISmsService, IEncryptionService, IPaginationContext, …), helpers
 DAL/         EF Core context, generic + entity repositories, IUnitOfWork, ElasticSearch / MongoDB / Redis adapters
 DTO/         Request/response records + FluentValidation validators
 ENTITIES/    Domain entities, Auditable base, enums
+GRAPHQL/     HotChocolate query/mutation/object types (Role example)
 MEDIATRS/    CQRS commands, queries, handlers (Organization example)
+STORAGE/     Vendor-neutral IBlobStorage contract + Filesystem / SFTP / S3 impls
 REFITS/      Refit HTTP client interfaces (ToDo example)
 TESTS/       xUnit tests
 NBOOMERS/    Load-test runner (NBomber)
@@ -65,7 +67,7 @@ Controllers / GraphQL → BLL services → DAL repositories
                        (no controller → repository shortcut)
 ```
 
-`IQueryable<T>` never crosses the BLL boundary. The GraphQL `Query` is allowed to depend on repositories directly because it is itself a read projection.
+`IQueryable<T>` never crosses the BLL boundary. The GraphQL `Query` (in the `GRAPHQL` project) is allowed to depend on repositories directly because it is itself a read projection.
 
 ---
 
@@ -85,6 +87,7 @@ Controllers / GraphQL → BLL services → DAL repositories
 - **Background jobs** — Hangfire with PostgreSQL storage; sample recurring `CounterJob`
 - **Health check** — `/nummy/health`
 - **Rate limit** — fixed-window per-user, 5 req / 10 s (configurable in `RegisterRateLimit`)
+- **Pluggable blob storage** — `IBlobStorage` (in `STORAGE`) has Filesystem / SFTP / S3 backends. Pick one via `BlobStorageSettings.Provider` — no code change required.
 - **Localization** — `lang` header switches `MsgResource` translations (az / en / ru)
 
 ---

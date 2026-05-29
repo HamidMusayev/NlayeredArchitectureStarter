@@ -3,6 +3,11 @@ using CORE.Constants;
 
 namespace API.Middlewares;
 
+/// <summary>
+///     Per-request localization resolver. Reads the <c>lang</c> header (values: <c>az</c>,
+///     <c>en</c>, <c>ru</c>), sets the thread culture for resource-file translation, and stores
+///     both the language tag and culture name in <c>HttpContext.Items</c> for downstream use.
+/// </summary>
 public class LocalizationMiddleware(RequestDelegate next)
 {
     public async Task Invoke(HttpContext context)

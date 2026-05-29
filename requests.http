@@ -39,10 +39,16 @@ GET {{baseUrl}}/api/Auth/login/token
 Authorization: Bearer {{token}}
 RefreshToken: {{refreshToken}}
 
-### Refresh access token
+### Refresh access token — rotation + reuse detection
+### Only the RefreshToken header gates this; the access token may already be expired.
+### Re-presenting the same refresh token twice burns the whole token family.
 GET {{baseUrl}}/api/Auth/refresh
-Authorization: Bearer {{token}}
 RefreshToken: {{refreshToken}}
+
+> {%
+client.global.set("token", response.body.data.accessToken);
+client.global.set("refreshToken", response.body.data.refreshToken);
+%}
 
 ### Send OTP for password reset
 GET {{baseUrl}}/api/Auth/otp?email=test@test.tst
@@ -421,3 +427,19 @@ Authorization: Bearer {{token}}
 ### Hangfire dashboard    -> {{baseUrl}}/api/hangfire   (requires JWT bearer)
 ### GraphQL Voyager       -> {{baseUrl}}/graphql-voyager
 ### Nummy health          -> {{baseUrl}}/nummy/health
+### Health (liveness)     -> {{baseUrl}}/health/live
+### Health (readiness)    -> {{baseUrl}}/health/ready
+
+############################################
+# HEALTH PROBES
+############################################
+
+### Liveness — process is up
+GET {{baseUrl}}/health/live
+
+### Readiness — Postgres (+ Redis/Mongo/Elastic when enabled) reachable
+GET {{baseUrl}}/health/ready
+
+### Correlation ID — send your own, get it echoed back on the response header
+GET {{baseUrl}}/health/live
+X-Correlation-Id: my-trace-1234

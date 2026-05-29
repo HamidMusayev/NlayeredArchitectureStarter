@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.EntityFramework.Context;
 
+/// <summary>
+///     Legacy helper that applied a single global query filter (e.g. soft-delete) to every
+///     <see cref="Auditable" /> derivative. Superseded by <c>DataContext</c>'s composite
+///     soft-delete + tenant filter — kept for backwards compatibility / other contexts.
+/// </summary>
 public static class ContextExtensions
 {
     public static void AddGlobalFilter(this ModelBuilder modelBuilder, string property, object value)

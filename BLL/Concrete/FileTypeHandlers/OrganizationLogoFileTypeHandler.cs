@@ -4,6 +4,11 @@ using ENTITIES.Enums;
 
 namespace BLL.Concrete.FileTypeHandlers;
 
+/// <summary>
+///     <see cref="IFileTypeHandler" /> for <c>FileType.OrganizationLogo</c> uploads.
+///     Currently a no-op placeholder — wire to an organization update command when the
+///     Organization CQRS slice exposes an <c>AddLogo</c> command.
+/// </summary>
 public class OrganizationLogoFileTypeHandler : IFileTypeHandler
 {
     public FileType Type => FileType.OrganizationLogo;

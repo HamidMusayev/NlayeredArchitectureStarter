@@ -6,6 +6,11 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace API.Filters;
 
+/// <summary>
+///     Action filter that short-circuits the request with a 400 Bad Request and an
+///     <c>ErrorDataResult&lt;ModelStateDictionary&gt;</c> body when the model state is invalid.
+///     Registered globally so every controller action is covered without per-action attributes.
+/// </summary>
 public class ModelValidatorActionFilter : IActionFilter
 {
     public void OnActionExecuted(ActionExecutedContext context)

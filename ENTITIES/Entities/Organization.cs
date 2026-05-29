@@ -3,6 +3,10 @@ using ENTITIES.Entities.Generic;
 
 namespace ENTITIES.Entities;
 
+/// <summary>
+///     Tree-structured organizational unit — company, department, branch. Self-referencing
+///     via <see cref="ParentId" /> so derived projects can model arbitrarily deep hierarchies.
+/// </summary>
 public class Organization : Auditable, IEntity
 {
     public required string FullName { get; set; }

@@ -12,6 +12,11 @@ using ENTITIES.Enums;
 
 namespace BLL.Concrete;
 
+/// <summary>
+///     Default <see cref="IUserService" /> implementation. Handles user creation (hashes password,
+///     assigns Guest role when none provided), profile updates (excludes credentials from the UPDATE
+///     statement), soft-delete (also invalidates all tokens), and paginated/full list retrieval.
+/// </summary>
 public class UserService(
     IUserRepository userRepository,
     IRoleRepository roleRepository,

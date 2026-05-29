@@ -5,6 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DAL.EntityFramework.GenericRepository;
 
+/// <summary>
+///     Default <see cref="IGenericRepository{TEntity}" /> backed by <see cref="DataContext" />.
+///     Covers all standard CRUD operations including <c>SoftDelete</c> (which requires the entity
+///     to derive from <see cref="Auditable" />). Reads honour EF Core global query filters by default;
+///     pass <c>ignoreQueryFilters = true</c> to bypass soft-delete / tenant isolation.
+/// </summary>
 public class GenericRepository<TEntity>(DataContext ctx) : IGenericRepository<TEntity>
     where TEntity : class
 {

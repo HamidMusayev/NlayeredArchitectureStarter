@@ -10,6 +10,11 @@ using DTO.User;
 
 namespace BLL.Concrete;
 
+/// <summary>
+///     Default <see cref="IAuthService" /> implementation. Validates credentials with PBKDF2
+///     comparison, resolves the user from a JWT claim for token-based re-login, and soft-deletes
+///     all associated token rows on logout.
+/// </summary>
 public class AuthService(
     IUserRepository userRepository,
     ITokenRepository tokenRepository,

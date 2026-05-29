@@ -4,6 +4,12 @@ using MongoDB.Driver;
 
 namespace DAL.MongoDb;
 
+/// <summary>
+///     Default <see cref="IMongoDbService" /> implementation backed by the official MongoDB .NET driver.
+///     Connection string and default database name are read from <c>MongoDbSettings</c> at startup.
+///     The internal <c>IMongoClient</c> is a long-lived singleton; <c>IMongoDatabase</c> is replaced
+///     by <see cref="ChangeDatabase" /> when needed.
+/// </summary>
 public class MongoDbService : IMongoDbService
 {
     private readonly IMongoClient _client;

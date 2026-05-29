@@ -3,6 +3,11 @@ using MongoDB.Driver;
 
 namespace DAL.MongoDb;
 
+/// <summary>
+///     Thin MongoDB driver abstraction. Provides raw collection access (<see cref="GetCollection{T}" />)
+///     plus convenience helpers for the common CRUD operations. Call <see cref="ChangeDatabase" /> to
+///     switch the active database at runtime without rebuilding the client.
+/// </summary>
 public interface IMongoDbService
 {
     void ChangeDatabase(string database);

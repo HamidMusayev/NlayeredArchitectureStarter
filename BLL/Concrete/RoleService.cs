@@ -10,6 +10,12 @@ using ENTITIES.Entities;
 
 namespace BLL.Concrete;
 
+/// <summary>
+///     Default <see cref="IRoleService" /> implementation. Manages role lifecycle including
+///     permission assignment (resolved and attached atomically on add/update) and soft-delete.
+///     Permission-clearing on update calls the repository helper then commits once via
+///     <c>IUnitOfWork</c>.
+/// </summary>
 public class RoleService(
     IRoleRepository roleRepository,
     IPermissionRepository permissionRepository,

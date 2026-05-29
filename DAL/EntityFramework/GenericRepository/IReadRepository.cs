@@ -2,6 +2,11 @@ using System.Linq.Expressions;
 
 namespace DAL.EntityFramework.GenericRepository;
 
+/// <summary>
+///     Read-only data-access surface for a single entity type. All methods accept an optional
+///     <c>ignoreQueryFilters</c> flag to bypass the EF Core global query filters (soft-delete,
+///     tenant isolation) when an admin query requires unfiltered access.
+/// </summary>
 public interface IReadRepository<T> where T : class
 {
     Task<List<T>> GetListAsync(Expression<Func<T, bool>>? filter = null, bool ignoreQueryFilters = false);

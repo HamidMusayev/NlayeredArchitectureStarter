@@ -4,6 +4,10 @@ using DTO.User;
 
 namespace BLL.Abstract;
 
+/// <summary>
+///     Application service for user management — CRUD operations, paginated listing, soft-delete,
+///     and profile-picture association. Password hashing is handled internally; callers pass plain text.
+/// </summary>
 public interface IUserService
 {
     Task<IDataResult<List<UserToListDto>>> GetAsync();

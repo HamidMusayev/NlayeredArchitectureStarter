@@ -2,6 +2,10 @@
 
 namespace DTO.Auth.Validators;
 
+/// <summary>
+///     FluentValidation rules for <see cref="ResetPasswordDto" />: email format + password complexity + confirmation
+///     match.
+/// </summary>
 public class ResetPasswordDtoValidator : AbstractValidator<ResetPasswordDto>
 {
     public ResetPasswordDtoValidator()

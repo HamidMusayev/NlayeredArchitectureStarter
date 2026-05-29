@@ -17,8 +17,9 @@
         <ProjectReference Include="..\DAL\DAL.csproj"/>
         <ProjectReference Include="..\DTO\DTO.csproj"/>
         <ProjectReference Include="..\ENTITIES\ENTITIES.csproj"/>
+        <ProjectReference Include="..\NOTIFICATIONS\NOTIFICATIONS.csproj"/>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="AutoMapper" Version="16.1.1" />
+        <PackageReference Include="AutoMapper" Version="16.1.1"/>
     </ItemGroup>
 </Project>

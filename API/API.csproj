@@ -20,34 +20,49 @@
         <None Remove="wwwroot\users\**"/>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="11.0.0" />
+        <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="11.0.0"/>
         <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="8.3.3"/>
         <PackageReference Include="GraphQL.Server.Ui.Voyager" Version="8.3.3"/>
-        <PackageReference Include="Hangfire" Version="1.8.23" />
-        <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1" />
-        <PackageReference Include="HotChocolate.Abstractions" Version="16.0.9" />
-        <PackageReference Include="HotChocolate.AspNetCore" Version="16.0.9" />
-        <PackageReference Include="HotChocolate.Data.EntityFramework" Version="16.0.9" />
+        <PackageReference Include="Hangfire" Version="1.8.23"/>
+        <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1"/>
+        <PackageReference Include="HotChocolate.AspNetCore" Version="16.0.9"/>
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.1.0"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0"/>
         <PackageReference Include="MiniProfiler.EntityFrameworkCore" Version="4.5.4"/>
-        <PackageReference Include="MongoDB.Driver" Version="3.9.0" />
-        <PackageReference Include="Nummy.CodeLogger" Version="2.2.1" />
-        <PackageReference Include="Nummy.ExceptionHandler" Version="2.2.1" />
-        <PackageReference Include="Nummy.HealthChecker" Version="2.2.1" />
-        <PackageReference Include="Nummy.HttpLogger" Version="2.2.1" />
+        <PackageReference Include="MongoDB.Driver" Version="3.9.0"/>
+        <PackageReference Include="Nummy.CodeLogger" Version="2.2.1"/>
+        <PackageReference Include="Nummy.ExceptionHandler" Version="2.2.1"/>
+        <PackageReference Include="Nummy.HealthChecker" Version="2.2.1"/>
+        <PackageReference Include="Nummy.HttpLogger" Version="2.2.1"/>
         <PackageReference Include="Redis.OM" Version="1.1.0"/>
-        <PackageReference Include="Refit" Version="10.1.6" />
-        <PackageReference Include="Refit.HttpClientFactory" Version="10.1.6" />
+        <PackageReference Include="Refit" Version="10.1.6"/>
+        <PackageReference Include="Refit.HttpClientFactory" Version="10.1.6"/>
         <PackageReference Include="Scrutor" Version="7.0.0"/>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
-        <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.7" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7"/>
+        <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.7"/>
         <PackageReference Include="MiniProfiler.AspNetCore.Mvc" Version="4.5.4"/>
         <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1"/>
+        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.Seq" Version="9.0.0"/>
+        <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1"/>
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0"/>
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.13.0"/>
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.13.0"/>
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.13.0"/>
+        <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.13.0-beta.1"/>
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.13.0"/>
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.MongoDb" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.Elasticsearch" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -69,9 +84,20 @@
             <GlobalPropertiesToRemove></GlobalPropertiesToRemove>
         </ProjectReference>
         <ProjectReference Include="..\MEDIATRS\MEDIATRS.csproj"/>
+        <ProjectReference Include="..\GRAPHQL\GRAPHQL.csproj"/>
         <ProjectReference Include="..\REFITS\REFITS.csproj"/>
+        <ProjectReference Include="..\OUTBOX\OUTBOX.csproj"/>
+        <ProjectReference Include="..\MESSAGEBUS\MESSAGEBUS.csproj"/>
+        <ProjectReference Include="..\STORAGE\STORAGE.csproj"/>
+        <ProjectReference Include="..\NOTIFICATIONS\NOTIFICATIONS.csproj"/>
     </ItemGroup>
     <ItemGroup>
         <Content Remove="wwwroot\files\**"/>
+    </ItemGroup>
+    <ItemGroup>
+        <!-- Razor email templates are read by RazorLight at runtime under {ContentRoot}/Templates/Email; copy to publish output. -->
+        <Content Update="Templates\Email\**\*.cshtml">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 </Project>

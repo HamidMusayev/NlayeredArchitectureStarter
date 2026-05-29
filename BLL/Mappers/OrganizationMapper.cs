@@ -4,6 +4,10 @@ using ENTITIES.Entities;
 
 namespace BLL.Mappers;
 
+/// <summary>
+///     AutoMapper profile for <c>Organization</c> entity ↔ DTO conversions.
+///     Covers list (outbound), add, and update (inbound) DTOs.
+/// </summary>
 public class OrganizationMapper : Profile
 {
     public OrganizationMapper()

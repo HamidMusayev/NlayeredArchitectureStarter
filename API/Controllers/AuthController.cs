@@ -13,6 +13,10 @@ using IResult = DTO.Responses.IResult;
 
 namespace API.Controllers;
 
+/// <summary>
+///     Authentication endpoints: credential-based login, token re-login, logout, refresh-token
+///     rotation, and account-recovery flows (send OTP, reset password).
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -47,26 +51,21 @@ public class AuthController(
         return Ok(await accountRecoveryService.SendOtpAsync(email));
     }
 
-    [SwaggerOperation(Summary = "refesh access token")]
+    [SwaggerOperation(Summary = "refresh access token (rotation + reuse detection)")]
     [Produces(typeof(IDataResult<LoginResponseDto>))]
-    [ValidateToken]
     [HttpGet("refresh")]
-    public async Task<IActionResult> Refresh()
+    [AllowAnonymous]
+    public async Task<IActionResult> Refresh(CancellationToken ct)
     {
-        var jwtToken =
-            jwtService.TrimToken(
-                HttpContext.Request.Headers[configSettings.AuthSettings.HeaderName]!);
+        // Rotation deliberately runs without [ValidateToken]: the access token may already
+        // be expired, that's why the caller is refreshing. The refresh token alone gates the flow,
+        // and RotateAsync handles reuse detection (revokes the whole family on replay).
         string refreshToken = HttpContext.Request.Headers[configSettings.AuthSettings.RefreshTokenHeaderName]!;
 
-        var tokenResponse = await tokenService.GetAsync(jwtToken, refreshToken);
-        if (tokenResponse.Success)
-        {
-            await tokenService.SoftDeleteAsync(tokenResponse.Data!.Id);
-            var response = await tokenService.CreateTokenAsync(tokenResponse.Data.User);
-            return Ok(response);
-        }
+        var rotation = await tokenService.RotateAsync(refreshToken, ct);
+        if (!rotation.Success) return Unauthorized(rotation);
 
-        return Unauthorized();
+        return Ok(rotation);
     }
 
     [SwaggerOperation(Summary = "reset password")]

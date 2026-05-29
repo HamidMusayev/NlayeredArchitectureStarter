@@ -9,6 +9,10 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace API.Controllers;
 
+/// <summary>
+///     Permission management endpoints: paginated list, full list, single-permission lookup,
+///     create, update, and soft-delete. All routes require a valid JWT.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

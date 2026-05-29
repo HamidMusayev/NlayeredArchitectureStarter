@@ -7,6 +7,12 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace API.Filters;
 
+/// <summary>
+///     Authorization filter that checks the application-level token store in addition to the
+///     standard JWT signature. Extracts the access and refresh tokens from the configured request
+///     headers, calls <c>ITokenService.CheckValidationAsync</c>, and short-circuits with 401 on
+///     failure. Applied via <see cref="ValidateTokenAttribute" />.
+/// </summary>
 public class ValidateTokenFilter(
     ConfigSettings configSettings,
     ITokenService tokenService,

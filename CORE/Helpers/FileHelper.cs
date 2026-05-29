@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Http;
 
 namespace CORE.Helpers;
 
+/// <summary>
+///     Static helpers for file-related work outside the <c>IBlobStorage</c> abstraction —
+///     disk I/O, image validation, and PDF sanitization (strips embedded JavaScript via iText).
+/// </summary>
 public static class FileHelper
 {
     private static readonly HashSet<string> ImageExtensions =

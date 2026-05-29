@@ -1,5 +1,6 @@
 namespace CORE.Config;
 
+/// <summary>Twilio Messaging credentials used by <c>TwilioSmsService</c>.</summary>
 public record TwilioSettings
 {
     /// <summary>
