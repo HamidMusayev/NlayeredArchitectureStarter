@@ -1,4 +1,4 @@
-using API.Containers.Extensions;
+using API.Extensions;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -47,7 +47,7 @@ builder.Services
     .AddSwaggerDocumentation(config)
     .AddApiVersioningRules()
     .AddRealtimeHub()
-    .AddGraphQLSchema()
+    .AddGraphQlSchema()
 
     // Background + integration
     .AddHangfireJobs(config)
@@ -86,7 +86,7 @@ app
     .UseRateLimit()
     .UseHangfireDashboard()
     .UseRealtimeHub()
-    .UseGraphQLEndpoints()
+    .UseGraphQlEndpoints()
     .UseControllers();
 
 app.Run();

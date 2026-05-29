@@ -20,6 +20,7 @@ public record BlobStorageSettings
     ///     is set to a self-hosted endpoint).
     /// </summary>
     public S3BlobSettings S3 { get; set; } = new();
+    public SftpSettings Sftp { get; set; } = new();
 }
 
 public enum BlobStorageProvider
@@ -52,4 +53,12 @@ public record S3BlobSettings
     ///     works for both.
     /// </summary>
     public bool ForcePathStyle { get; set; } = true;
+}
+
+/// <summary>SFTP credentials used by <c>SftpService</c> + <c>SftpBlobStorage</c>.</summary>
+public record SftpSettings
+{
+    public  string UserName { get; set; }= string.Empty;
+    public  string Ip { get; set; }= string.Empty;
+    public  string Password { get; set; }= string.Empty;
 }

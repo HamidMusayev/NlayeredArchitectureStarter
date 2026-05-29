@@ -15,10 +15,8 @@ public sealed class RedisCacheService(IConnectionMultiplexer redis, ConfigSettin
 {
     private IDatabase Db => redis.GetDatabase();
 
-    private TimeSpan? DefaultTtl =>
-        config.CacheSettings.DefaultTtlSeconds > 0
-            ? TimeSpan.FromSeconds(config.CacheSettings.DefaultTtlSeconds)
-            : null;
+    private TimeSpan DefaultTtl =>
+        TimeSpan.FromSeconds(config.CacheSettings.DefaultTtlSeconds);
 
     public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : class
     {
@@ -29,7 +27,7 @@ public sealed class RedisCacheService(IConnectionMultiplexer redis, ConfigSettin
     public Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default) where T : class
     {
         var json = JsonSerializer.Serialize(value);
-        return Db.StringSetAsync(key, json, ttl ?? DefaultTtl);
+        return Db.StringSetAsync(key, json, new Expiration(ttl ?? DefaultTtl));
     }
 
     public Task RemoveAsync(string key, CancellationToken ct = default)

@@ -80,12 +80,12 @@ public sealed class SftpBlobStorage(ConfigSettings config) : IBlobStorage
     private ConnectionInfo GetConnectionInfo()
     {
         var auth = new PasswordAuthenticationMethod(
-            config.SftpSettings.UserName,
-            config.SftpSettings.Password);
+            config.BlobStorageSettings.Sftp.UserName,
+            config.BlobStorageSettings.Sftp.Password);
 
         return new ConnectionInfo(
-            config.SftpSettings.Ip,
-            config.SftpSettings.UserName,
+            config.BlobStorageSettings.Sftp.Ip,
+            config.BlobStorageSettings.Sftp.UserName,
             auth);
     }
 
