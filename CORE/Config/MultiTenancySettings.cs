@@ -1,25 +1,14 @@
 namespace CORE.Config;
 
 /// <summary>
-///     Multi-tenancy toggle + resolver selection. Default is <c>IsEnabled = false</c> — derived
-///     single-tenant projects see no behavioural change. When enabled, every <c>Auditable</c>
-///     row is filtered by the resolved tenant and new rows are stamped with the current tenant id.
+///     Multi-tenancy configuration. Every <c>Auditable</c> row is filtered by the resolved
+///     tenant and new rows are stamped with the current tenant id. If a derived project is
+///     single-tenant, delete this record, <see cref="ITenant" /> and its implementations, the
+///     <c>AddMultiTenancy</c> call, the <c>TenantId</c> column on <c>Auditable</c>, and the
+///     appsettings block.
 /// </summary>
 public record MultiTenancySettings
 {
-    public bool IsEnabled { get; set; }
-
-    public TenantResolverProvider Provider { get; set; } = TenantResolverProvider.Header;
-
-    /// <summary>HTTP header name read by the Header resolver.</summary>
-    public string HeaderName { get; set; } = "X-Tenant-Id";
-
-    /// <summary>JWT claim type read by the Claims resolver.</summary>
+    /// <summary>JWT claim type read by <c>ClaimsTenantResolver</c>.</summary>
     public string ClaimName { get; set; } = "tenant_id";
-}
-
-public enum TenantResolverProvider
-{
-    Header = 0,
-    Claims = 1
 }

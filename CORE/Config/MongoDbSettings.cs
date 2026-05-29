@@ -1,7 +1,7 @@
-﻿namespace CORE.Config;
+namespace CORE.Config;
 
-/// <summary>MongoDB driver config — toggle <see cref="Controllable.IsEnabled" /> to opt in.</summary>
-public record MongoDbSettings : Controllable
+/// <summary>MongoDB driver config.</summary>
+public record MongoDbSettings
 {
     public required string Connection { get; set; }
     public required string Database { get; set; }

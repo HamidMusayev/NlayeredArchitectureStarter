@@ -96,14 +96,13 @@ Controllers / GraphQL → BLL services → DAL repositories
 
 Settings live in `appsettings.Development.json` and `appsettings.Production.json` under the `ConfigSettings` root. Strongly-typed via `CORE/Config/ConfigSettings.cs`.
 
-Toggle subsystems with the `IsEnabled` flags:
+Only Swagger ships with an `IsEnabled` flag:
 
 ```jsonc
-"RedisSettings":         { "IsEnabled": false, ... },
-"ElasticSearchSettings": { "IsEnabled": false, ... },
-"MongoDbSettings":       { "IsEnabled": true,  ... },
-"SwaggerSettings":       { "IsEnabled": true,  ... }
+"SwaggerSettings": { "IsEnabled": true, ... }
 ```
+
+Everything else (EF Core, MongoDB, Elasticsearch, Redis, multi-tenancy, OpenTelemetry, ...) lives in its own extension class and is wired unconditionally in `Program.cs`. If a derived project does not need one, delete the extension file, its settings record, the appsettings block, and the call in `Program.cs`.
 
 > Secrets (`AuthSettings.SecretKey`, `CryptographySettings.*`, `TwilioSettings.AuthToken`, mail/SFTP passwords) ship with placeholder values. Move them to **User Secrets** (`dotnet user-secrets`) or your platform's secret store before deployment.
 

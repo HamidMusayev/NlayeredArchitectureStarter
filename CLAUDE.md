@@ -67,9 +67,11 @@ Scrutor auto-scans `BLL.Concrete.*` and `DAL.EntityFramework.Concrete.*` and bin
 - **Localization:** `lang` header (`az` / `en` / `ru`) drives `MsgResource` translations via `LocalizationMiddleware`.
 - **Rate limit:** fixed-window per-user 5 req/10s, configured in `RegisterRateLimit`.
 
-### Optional subsystems (`IsEnabled` flags in `appsettings.*.json` under `ConfigSettings`)
+### Optional subsystems
 
-`RedisSettings`, `ElasticSearchSettings`, `MongoDbSettings`, `SwaggerSettings`. Code paths must remain runnable with each one disabled — guard registrations on the flag.
+Only `SwaggerSettings` ships with an `IsEnabled` flag — code paths must remain runnable with Swagger disabled, so guard its registrations on the flag.
+
+Every other subsystem (EF Core, MongoDB, Elasticsearch, Redis, multi-tenancy, OpenTelemetry, ...) is **not** gated by config. Each has its own extension class under `API/Extensions/` and is wired unconditionally in [Program.cs](API/Program.cs). If a derived project does not need one, delete the extension file, its settings record, the appsettings block, and the call in `Program.cs`. The rule is **keep what you use, delete what you don't** — no dead flags. Multi-tenancy specifically is pinned to `ClaimsTenantResolver`; single-tenant projects should remove `AddMultiTenancy`, `ITenant`/`ClaimsTenantResolver`, and the `TenantId` column on `Auditable`.
 
 ### Pluggable blob storage
 

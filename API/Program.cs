@@ -17,8 +17,10 @@ builder.Services
     .AddAutoMapperProfiles()
 
     // Storage + business
-    .AddMultiTenancy(config)
-    .AddPersistence(config)
+    .AddMultiTenancy()
+    .AddEntityFramework(config)
+    .AddMongoDb()
+    .AddElasticSearch(config)
     .AddCoreServices()
     .AddBusinessServices()
 
@@ -50,7 +52,6 @@ builder.Services
 
     // Background + integration
     .AddHangfireJobs(config)
-    .AddNummyObservability(config)
     .AddRefitHttpClients(config)
     .AddMediatrHandlers()
     .AddMiniProfilerTools()
@@ -72,7 +73,6 @@ app
     .UseCorsPolicy()
     .UseLocalization()
     .UseSecurityHeaders()
-    .UseNummyObservability()
     .MapCoreHealthChecks()
     .UseOutputCachePipeline()
     .UseHttpsRedirection();

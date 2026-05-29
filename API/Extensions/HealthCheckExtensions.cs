@@ -18,20 +18,19 @@ public static class HealthCheckExtensions
         var hc = services.AddHealthChecks()
             .AddNpgSql(config.ConnectionStrings.AppDb, name: "postgres", tags: [ReadyTag]);
 
-        if (config.RedisSettings.IsEnabled && !string.IsNullOrWhiteSpace(config.RedisSettings.Connection))
+        if (!string.IsNullOrWhiteSpace(config.RedisSettings.Connection))
         {
             var redisConn =
                 config.RedisSettings.Connection.Replace("redis://", string.Empty, StringComparison.OrdinalIgnoreCase);
             hc.AddRedis(redisConn, "redis", tags: [ReadyTag]);
         }
 
-        if (config.MongoDbSettings.IsEnabled && !string.IsNullOrWhiteSpace(config.MongoDbSettings.Connection))
+        if (!string.IsNullOrWhiteSpace(config.MongoDbSettings.Connection))
             hc.AddMongoDb(_ => new MongoClient(config.MongoDbSettings.Connection),
                 name: "mongodb",
                 tags: [ReadyTag]);
 
-        if (config.ElasticSearchSettings.IsEnabled &&
-            !string.IsNullOrWhiteSpace(config.ElasticSearchSettings.Connection))
+        if (!string.IsNullOrWhiteSpace(config.ElasticSearchSettings.Connection))
             hc.AddElasticsearch(config.ElasticSearchSettings.Connection, "elasticsearch", tags: [ReadyTag]);
 
         return services;

@@ -9,17 +9,13 @@ using Serilog.Events;
 namespace API.Extensions;
 
 /// <summary>
-///     Serilog (structured logging) + OpenTelemetry (tracing/metrics) + correlation ID. Sits
-///     alongside Nummy — both run in parallel unless <see cref="LoggingSettings.Provider" />
-///     says otherwise.
+///     Serilog (structured logging) + OpenTelemetry (tracing/metrics) + correlation ID.
 /// </summary>
 public static class ObservabilityExtensions
 {
     public static WebApplicationBuilder AddSerilogLogging(this WebApplicationBuilder builder, ConfigSettings config)
     {
         var settings = config.LoggingSettings;
-        if (string.Equals(settings.Provider, "Nummy", StringComparison.OrdinalIgnoreCase))
-            return builder;
 
         var level = Enum.TryParse<LogEventLevel>(settings.MinimumLevel, true, out var parsed)
             ? parsed
@@ -60,7 +56,6 @@ public static class ObservabilityExtensions
         ConfigSettings config)
     {
         var settings = config.OpenTelemetrySettings;
-        if (!settings.IsEnabled) return services;
 
         var resourceBuilder = ResourceBuilder.CreateDefault()
             .AddService(settings.ServiceName, serviceVersion: settings.ServiceVersion);
@@ -92,8 +87,8 @@ public static class ObservabilityExtensions
         // Correlation ID must run before request logging so every log line carries the ID.
         app.UseMiddleware<CorrelationIdMiddleware>();
 
-        if (!string.Equals(config.LoggingSettings.Provider, "Nummy", StringComparison.OrdinalIgnoreCase))
-            app.UseSerilogRequestLogging();
+        app.UseSerilogRequestLogging();
+        
         return app;
     }
 }

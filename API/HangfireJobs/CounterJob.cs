@@ -1,32 +1,32 @@
-﻿using Hangfire;
-using Nummy.CodeLogger.Data.Entitites;
-using Nummy.CodeLogger.Data.Services;
+using Hangfire;
 
 namespace API.HangfireJobs;
 
 /// <summary>
-///     Demo recurring Hangfire job. Logs an info entry on every run via Nummy CodeLogger.
-///     Registered as a recurring job in <c>HangfireExtensions</c>. Replace with real
-///     background work or remove if not needed in derived projects.
+///     Demo recurring Hangfire job. Logs an info entry on every run. Registered as a recurring
+///     job in <c>HangfireExtensions</c>. Replace with real background work or remove if not
+///     needed in derived projects.
 /// </summary>
-public class CounterJob(INummyCodeLoggerService service)
+public class CounterJob(ILogger<CounterJob> logger)
 {
     [AutomaticRetry(Attempts = 2, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
-    public async Task Run(IJobCancellationToken hangfireToken)
+    public Task Run(IJobCancellationToken hangfireToken)
     {
         try
         {
-            await service.LogAsync(NummyCodeLogLevel.Info, "I am running");
+            hangfireToken.ThrowIfCancellationRequested();
+            logger.LogInformation("I am running");
+            return Task.CompletedTask;
         }
         catch (OperationCanceledException)
         {
-            await service.LogAsync(NummyCodeLogLevel.Debug, "job cancelled");
-            throw; // let Hangfire see the cancellation
+            logger.LogDebug("job cancelled");
+            throw;
         }
         catch (Exception ex)
         {
-            await service.LogAsync(NummyCodeLogLevel.Fatal, "job crashed");
-            throw; // Hangfire will retry according to attributes
+            logger.LogCritical(ex, "job crashed");
+            throw;
         }
     }
 }

@@ -17,7 +17,6 @@ public record ConfigSettings
     public ToDoClientSettings ToDoClientSettings { get; set; } = default!;
     public CryptographySettings CryptographySettings { get; set; } = default!;
     public MailSettings MailSettings { get; set; } = default!;
-    public NummySettings NummySettings { get; set; } = default!;
     public TwilioSettings TwilioSettings { get; set; } = default!;
     public LoggingSettings LoggingSettings { get; set; } = new();
     public OpenTelemetrySettings OpenTelemetrySettings { get; set; } = new();

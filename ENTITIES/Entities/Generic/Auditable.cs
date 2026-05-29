@@ -19,10 +19,9 @@ public class Auditable
     public bool IsDeleted { get; set; }
 
     /// <summary>
-    ///     Owning tenant id when multi-tenancy is enabled (see <c>MultiTenancySettings.IsEnabled</c>).
-    ///     Stamped from <c>ITenant.TenantId</c> on insert and used by <c>DataContext</c>'s global
-    ///     query filter to scope reads to the current tenant. Null = "shared / non-tenant" or
-    ///     single-tenant mode.
+    ///     Owning tenant id. Stamped from <c>ITenant.TenantId</c> on insert and used by
+    ///     <c>DataContext</c>'s global query filter to scope reads to the current tenant.
+    ///     Null = "shared / non-tenant" or an unresolved request.
     /// </summary>
     public Guid? TenantId { get; set; }
 }

@@ -12,9 +12,7 @@ namespace API.Middlewares;
 ///     and API responses can be cross-referenced.
 ///     <para>
 ///         Registered via <c>services.AddExceptionHandler&lt;ProblemDetailsExceptionHandler&gt;()</c>
-///         and activated by <c>app.UseExceptionHandler()</c>. Runs ahead of Nummy's exception
-///         handler so RFC-compliant ProblemDetails wins for the API response body; Nummy logging
-///         continues via <see cref="CodeLogger" /> and <see cref="HttpLogger" /> sinks unchanged.
+///         and activated by <c>app.UseExceptionHandler()</c>. 
 ///     </para>
 /// </summary>
 public class ProblemDetailsExceptionHandler(

@@ -1,15 +1,10 @@
 namespace CORE.Config;
 
 /// <summary>
-///     Logging provider selection + Serilog sink configuration.
-///     Provider controls which sink(s) receive structured logs:
-///     - "Serilog"  → Serilog only (console/file/Seq depending on flags below)
-///     - "Nummy"    → Nummy CodeLogger only (legacy)
-///     - "Both"     → Serilog and Nummy in parallel (default)
+///     Logging Serilog sink configuration.
 /// </summary>
 public record LoggingSettings
 {
-    public string Provider { get; set; } = "Both";
     public string MinimumLevel { get; set; } = "Information";
     public bool WriteToConsole { get; set; } = true;
     public bool WriteToFile { get; set; }

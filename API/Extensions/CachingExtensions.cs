@@ -11,9 +11,11 @@ namespace API.Extensions;
 
 /// <summary>
 ///     All cache-flavoured registrations: ASP.NET output cache, the <see cref="ICacheService" />
-///     abstraction (Memory or Redis), and — when <c>RedisSettings.IsEnabled</c> — the
+///     abstraction (Memory or Redis, switchable via <c>CacheSettings.Provider</c>), the
 ///     <see cref="Redis.OM.RedisConnectionProvider" />, the index-creator hosted service, and
-///     the <c>IPersonRepository</c> example.
+///     the <c>IPersonRepository</c> example. Redis is always-on — if a project does not need
+///     Redis, delete the Person sample, the <see cref="RedisSettings" /> record, the Redis
+///     registrations here, and the appsettings block.
 /// </summary>
 public static class CachingExtensions
 {
@@ -25,12 +27,9 @@ public static class CachingExtensions
         services.AddMemoryCache();
 
         // Redis.OM example registration — the in-house Person sample lives here.
-        if (config.RedisSettings.IsEnabled)
-        {
-            services.TryAddSingleton(new RedisConnectionProvider(config.RedisSettings.Connection));
-            services.TryAddScoped<IPersonRepository, PersonRepository>();
-            services.AddHostedService<RedisIndexCreatorService>();
-        }
+        services.TryAddSingleton(new RedisConnectionProvider(config.RedisSettings.Connection));
+        services.TryAddScoped<IPersonRepository, PersonRepository>();
+        services.AddHostedService<RedisIndexCreatorService>();
 
         // Vendor-neutral ICacheService — switchable via CacheSettings.Provider.
         switch (config.CacheSettings.Provider)

@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using CORE.Abstract;
-using CORE.Config;
 using DAL.EntityFramework.Seeds;
 using ENTITIES.Entities;
 using ENTITIES.Entities.Generic;
@@ -13,8 +12,7 @@ namespace DAL.EntityFramework.Context;
 public class DataContext(
     DbContextOptions<DataContext> options,
     ICurrentUser currentUser,
-    ITenant tenant,
-    ConfigSettings config)
+    ITenant tenant)
     : DbContext(options)
 {
     private static readonly MethodInfo BuildFilterMethod = typeof(DataContext)
@@ -30,11 +28,10 @@ public class DataContext(
 
     /// <summary>
     ///     EF Core re-evaluates this property on every query when it's referenced inside a
-    ///     global query filter (the standard "dynamic filter" pattern). Returns null when
-    ///     <c>MultiTenancySettings.IsEnabled</c> is off — the filter then short-circuits to
-    ///     "see everything".
+    ///     global query filter (the standard "dynamic filter" pattern). Returns null when the
+    ///     resolver can't determine a tenant — the filter then short-circuits to "see everything".
     /// </summary>
-    public Guid? CurrentTenantId => config.MultiTenancySettings.IsEnabled ? tenant.TenantId : null;
+    public Guid? CurrentTenantId => tenant.TenantId;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -104,8 +101,8 @@ public class DataContext(
                     var added = (Auditable)entityEntry.Entity;
                     added.CreatedAt = DateTime.UtcNow;
                     added.CreatedById = currentUser.UserId;
-                    // Stamp tenant only when tenancy is on and the entity didn't already specify one.
-                    if (config.MultiTenancySettings.IsEnabled && added.TenantId is null)
+                    // Stamp tenant when the entity didn't already specify one.
+                    if (added.TenantId is null)
                         added.TenantId = tenant.TenantId;
                     break;
                 case EntityState.Modified:
