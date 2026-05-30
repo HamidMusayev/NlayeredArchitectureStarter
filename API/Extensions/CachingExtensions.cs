@@ -21,6 +21,9 @@ public static class CachingExtensions
 
         services.AddMemoryCache();
 
+        // Token introspection cache — fronts the Tokens table for per-request validation.
+        services.TryAddSingleton<ITokenIntrospectionCache, TokenIntrospectionCache>();
+
         // Vendor-neutral ICacheService — switchable via CacheSettings.Provider.
         switch (config.CacheSettings.Provider)
         {

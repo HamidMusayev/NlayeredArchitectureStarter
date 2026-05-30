@@ -1,6 +1,7 @@
 using AutoMapper;
 using BLL.Abstract;
 using CORE.Abstract;
+using CORE.Concrete.Cache;
 using CORE.Config;
 using CORE.Localization;
 using DAL.EntityFramework.Abstract;
@@ -17,10 +18,16 @@ namespace BLL.Concrete;
 ///     Default <see cref="ITokenService" /> implementation. Mints JWT + refresh-token pairs
 ///     (new family per login), validates/retrieves tokens, performs refresh-token rotation with
 ///     reuse detection (burns the family on a replay attack), and handles soft-delete for logout.
+///     <para>
+///         Per-request validation is fronted by <see cref="ITokenIntrospectionCache" />: the DB
+///         is only consulted on cache miss, and every issuance / rotation / revocation pushes a
+///         marker into the cache so all replicas see the change immediately.
+///     </para>
 /// </summary>
 public class TokenService(
     ConfigSettings configSettings,
     ITokenRepository tokenRepository,
+    ITokenIntrospectionCache introspectionCache,
     IUnitOfWork unitOfWork,
     IJwtService jwtService,
     IMapper mapper)
@@ -32,6 +39,9 @@ public class TokenService(
 
         await tokenRepository.AddAsync(data);
         await unitOfWork.CommitAsync();
+
+        await introspectionCache.MarkValidAsync(data.AccessToken, data.RefreshToken,
+            CacheTtl(data.AccessTokenExpireDate));
 
         return new SuccessResult(Messages.Success.Translate());
     }
@@ -50,9 +60,33 @@ public class TokenService(
 
     public async Task<IResult> CheckValidationAsync(string accessToken, string refreshToken)
     {
-        return await tokenRepository.IsValid(accessToken, refreshToken)
-            ? new SuccessResult(Messages.Success.Translate())
-            : new ErrorResult(Messages.PermissionDenied.Translate());
+        var state = await introspectionCache.GetAsync(accessToken);
+
+        switch (state.Status)
+        {
+            case TokenCacheStatus.Revoked:
+                return new ErrorResult(Messages.PermissionDenied.Translate());
+
+            case TokenCacheStatus.Valid:
+                // Refresh hash must match the pair we issued. Mismatch = either a forged refresh
+                // header or a stale cache entry — fall through to the DB to be sure.
+                if (state.RefreshHash == TokenIntrospectionCache.Hash(refreshToken))
+                    return new SuccessResult(Messages.Success.Translate());
+                break;
+
+            case TokenCacheStatus.Unknown:
+            default:
+                break;
+        }
+
+        // Cache miss (or pair mismatch on a cache hit): authoritative DB lookup, repopulate.
+        var token = await tokenRepository.GetForValidationAsync(accessToken, refreshToken);
+        if (token is null)
+            return new ErrorResult(Messages.PermissionDenied.Translate());
+
+        await introspectionCache.MarkValidAsync(accessToken, refreshToken,
+            CacheTtl(token.AccessTokenExpireDate));
+        return new SuccessResult(Messages.Success.Translate());
     }
 
     public async Task<IDataResult<LoginResponseDto>> CreateTokenAsync(UserToListDto listDto)
@@ -61,6 +95,10 @@ public class TokenService(
         var familyId = Guid.NewGuid();
         var loginResponseDto = await IssueAsync(listDto, familyId);
         await unitOfWork.CommitAsync();
+
+        await introspectionCache.MarkValidAsync(loginResponseDto.AccessToken, loginResponseDto.RefreshToken,
+            CacheTtl(loginResponseDto.AccessTokenExpireDate));
+
         return new SuccessDataResult<LoginResponseDto>(loginResponseDto, Messages.Success.Translate());
     }
 
@@ -79,8 +117,12 @@ public class TokenService(
         if (existing.UsedAt is not null)
         {
             // Reuse detection — the rotated-out refresh token is back. Burn the whole family.
-            await tokenRepository.RevokeFamilyAsync(existing.FamilyId, ct);
+            var revoked = await tokenRepository.RevokeFamilyAsync(existing.FamilyId, ct);
             await unitOfWork.CommitAsync(ct);
+
+            foreach (var t in revoked)
+                await introspectionCache.MarkRevokedAsync(t.AccessToken, CacheTtl(t.AccessTokenExpireDate), ct);
+
             return new ErrorDataResult<LoginResponseDto>(Messages.PermissionDenied.Translate());
         }
 
@@ -94,6 +136,13 @@ public class TokenService(
         var newResponse = await IssueAsync(userDto, existing.FamilyId);
 
         await unitOfWork.CommitAsync(ct);
+
+        // The old access token is now unusable (UsedAt is set). Revoke its cache entry so the
+        // very next request with the old pair gets 401 without a DB round-trip.
+        await introspectionCache.MarkRevokedAsync(existing.AccessToken, CacheTtl(existing.AccessTokenExpireDate), ct);
+        await introspectionCache.MarkValidAsync(newResponse.AccessToken, newResponse.RefreshToken,
+            CacheTtl(newResponse.AccessTokenExpireDate), ct);
+
         return new SuccessDataResult<LoginResponseDto>(newResponse, Messages.Success.Translate());
     }
 
@@ -104,6 +153,8 @@ public class TokenService(
 
         tokenRepository.SoftDelete(data);
         await unitOfWork.CommitAsync();
+
+        await introspectionCache.MarkRevokedAsync(data.AccessToken, CacheTtl(data.AccessTokenExpireDate));
 
         return new SuccessResult(Messages.Success.Translate());
     }
@@ -133,5 +184,14 @@ public class TokenService(
 
         await tokenRepository.AddAsync(entity);
         return dto;
+    }
+
+    /// <summary>JWT's remaining lifetime plus the configured grace, clamped to ≥ 0.</summary>
+    private TimeSpan CacheTtl(DateTimeOffset accessTokenExpireDate)
+    {
+        var remaining = accessTokenExpireDate - DateTimeOffset.UtcNow;
+        var grace = TimeSpan.FromSeconds(configSettings.CacheSettings.TokenCacheGraceSeconds);
+        var total = remaining + grace;
+        return total > TimeSpan.Zero ? total : TimeSpan.Zero;
     }
 }

@@ -18,6 +18,7 @@ namespace BLL.Concrete;
 public class AuthService(
     IUserRepository userRepository,
     ITokenRepository tokenRepository,
+    ITokenIntrospectionCache introspectionCache,
     IUnitOfWork unitOfWork,
     IMapper mapper,
     IJwtService jwtService,
@@ -59,6 +60,9 @@ public class AuthService(
         tokens.ForEach(m => m.IsDeleted = true);
         await unitOfWork.CommitAsync();
 
+        foreach (var t in tokens)
+            await introspectionCache.MarkRevokedAsync(t.AccessToken, RevokeTtl(t.AccessTokenExpireDate));
+
         return new SuccessResult(Messages.Success.Translate());
     }
 
@@ -68,6 +72,19 @@ public class AuthService(
         tokens.ForEach(m => m.IsDeleted = true);
         await unitOfWork.CommitAsync();
 
+        foreach (var t in tokens)
+            await introspectionCache.MarkRevokedAsync(t.AccessToken, RevokeTtl(t.AccessTokenExpireDate));
+
         return new SuccessResult(Messages.Success.Translate());
+    }
+
+    /// <summary>
+    ///     Revocation marker only needs to outlive the JWT's <c>exp</c>; after that the signature
+    ///     check fails before we ever reach the cache. Add a small grace for clock skew.
+    /// </summary>
+    private static TimeSpan RevokeTtl(DateTimeOffset accessTokenExpireDate)
+    {
+        var ttl = accessTokenExpireDate - DateTimeOffset.UtcNow + TimeSpan.FromSeconds(60);
+        return ttl > TimeSpan.Zero ? ttl : TimeSpan.Zero;
     }
 }

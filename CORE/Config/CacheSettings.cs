@@ -12,6 +12,13 @@ public record CacheSettings
 
     /// <summary>Default TTL when callers don't specify one. Zero / negative = no expiration.</summary>
     public int DefaultTtlSeconds { get; set; } = 300;
+
+    /// <summary>
+    ///     Extra seconds added to <c>ITokenIntrospectionCache</c> entries on top of the JWT's
+    ///     remaining lifetime. Keeps revocation markers alive a hair past <c>exp</c> so a clock-
+    ///     skewed replica can't briefly honor a token whose marker has already expired.
+    /// </summary>
+    public int TokenCacheGraceSeconds { get; set; } = 60;
 }
 
 public enum CacheProvider

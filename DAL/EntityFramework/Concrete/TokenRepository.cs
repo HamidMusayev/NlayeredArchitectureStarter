@@ -24,6 +24,17 @@ public class TokenRepository(DataContext dataContext) : GenericRepository<Token>
             m.AccessTokenExpireDate > DateTime.UtcNow);
     }
 
+    public Task<Token?> GetForValidationAsync(string accessToken, string refreshToken,
+        CancellationToken ct = default)
+    {
+        return dataContext.Tokens.FirstOrDefaultAsync(m =>
+            m.AccessToken == accessToken &&
+            m.RefreshToken == refreshToken &&
+            m.UsedAt == null &&
+            !m.IsRevoked &&
+            m.AccessTokenExpireDate > DateTime.UtcNow, ct);
+    }
+
     public Task<List<Token>> GetActiveTokensAsync(string accessToken)
     {
         return dataContext.Tokens.Where(m => m.AccessToken == accessToken).ToListAsync();
@@ -36,11 +47,12 @@ public class TokenRepository(DataContext dataContext) : GenericRepository<Token>
             .FirstOrDefaultAsync(t => t.RefreshToken == refreshToken, ct);
     }
 
-    public async Task RevokeFamilyAsync(Guid familyId, CancellationToken ct = default)
+    public async Task<List<Token>> RevokeFamilyAsync(Guid familyId, CancellationToken ct = default)
     {
         var rows = await dataContext.Tokens
             .Where(t => t.FamilyId == familyId && !t.IsRevoked)
             .ToListAsync(ct);
         rows.ForEach(t => t.IsRevoked = true);
+        return rows;
     }
 }
