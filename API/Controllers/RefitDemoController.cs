@@ -14,7 +14,7 @@ namespace API.Controllers;
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class RefitDemoController(IToDoClient toDoClient) : ControllerBase
 {
-    [HttpGet("refit/test/todo/get")]
+    [HttpGet("todo/get")]
     [AllowAnonymous]
     public async Task<IActionResult> RefitTestTodoGet()
     {

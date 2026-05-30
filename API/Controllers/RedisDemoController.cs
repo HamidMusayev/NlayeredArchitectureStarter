@@ -19,7 +19,7 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class PersonController(IPersonRepository personRepository) : ControllerBase
+public class RedisDemoController(IPersonRepository personRepository) : ControllerBase
 {
     [SwaggerOperation(Summary = "add person to redis")]
     [SwaggerResponse(StatusCodes.Status200OK)]

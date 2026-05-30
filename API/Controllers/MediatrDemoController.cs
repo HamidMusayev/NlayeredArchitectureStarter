@@ -20,7 +20,7 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ValidateToken]
-public class OrganizationController(IMediator mediator) : ControllerBase
+public class MediatrDemoController(IMediator mediator) : ControllerBase
 {
     [SwaggerOperation(Summary = "get organizations")]
     [Produces(typeof(IDataResult<List<OrganizationToListDto>>))]

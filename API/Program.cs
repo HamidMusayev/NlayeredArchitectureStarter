@@ -26,6 +26,7 @@ builder.Services
 
     // Cross-cutting abstractions (provider-switched via config)
     .AddCaching(config)
+    .AddRedisOm(config)
     .AddBlobStorage(config)
     .AddMessageBus(config)
     .AddOutbox()
