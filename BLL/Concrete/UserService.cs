@@ -1,14 +1,16 @@
-using AutoMapper;
 using BLL.Abstract;
+using BLL.Mappers;
 using CORE.Abstract;
 using CORE.Localization;
 using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
 using DAL.EntityFramework.Utility;
+using DTO.Common;
 using DTO.Responses;
 using DTO.User;
 using ENTITIES.Entities;
 using ENTITIES.Enums;
+using ENTITIES.Identifiers;
 
 namespace BLL.Concrete;
 
@@ -16,13 +18,19 @@ namespace BLL.Concrete;
 ///     Default <see cref="IUserService" /> implementation. Handles user creation (hashes password,
 ///     assigns Guest role when none provided), profile updates (excludes credentials from the UPDATE
 ///     statement), soft-delete (also invalidates all tokens), and paginated/full list retrieval.
+///     <para>
+///         Uses the Mapperly-generated <see cref="UserMapper" /> directly — no <c>IMapper</c>
+///         injection. Compile-time mappers catch missing properties at build time instead of at
+///         <c>Map&lt;T&gt;</c>.
+///     </para>
 /// </summary>
 public class UserService(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
     ITokenRepository tokenRepository,
+    IUserPermissionsCache userPermissionsCache,
     IUnitOfWork unitOfWork,
-    IMapper mapper,
+    UserMapper userMapper,
     IPaginationContext paginationContext,
     IPasswordHasher passwordHasher)
     : IUserService
@@ -32,15 +40,24 @@ public class UserService(
         if (await userRepository.IsUserExistAsync(addDto.Email, null))
             return new ErrorResult(Messages.UserIsExist.Translate());
 
-        addDto = addDto with
+        if (addDto.RoleId is null)
         {
-            RoleId = addDto.RoleId
-                     ?? (await roleRepository.GetAsync(m => m.Key == nameof(UserType.Guest)))?.Id
-        };
-        var data = mapper.Map<User>(addDto);
+            var guest = await roleRepository.GetAsync(m => m.Key == nameof(UserType.Guest));
+            if (guest is not null) addDto = addDto with { RoleId = new RoleId(guest.Id) };
+        }
 
-        data.Salt = passwordHasher.GenerateSalt();
-        data.Password = passwordHasher.Hash(data.Password, data.Salt);
+        // Construct the entity explicitly — User has `required` fields the DTO doesn't carry
+        // (Salt, hashed Password). Mapperly copies the DTO-supplied bits onto this skeleton.
+        var salt = passwordHasher.GenerateSalt();
+        var data = new User
+        {
+            Username = string.Empty,
+            Email = string.Empty,
+            ContactNumber = string.Empty,
+            Password = passwordHasher.Hash(addDto.Password, salt),
+            Salt = salt
+        };
+        userMapper.UpdateEntity(addDto, data);
 
         await userRepository.AddAsync(data);
         await unitOfWork.CommitAsync();
@@ -55,7 +72,8 @@ public class UserService(
 
         userRepository.SoftDelete(data);
 
-        var tokens = await tokenRepository.GetListAsync(m => m.UserId == id);
+        var typedUserId = new UserId(id);
+        var tokens = await tokenRepository.GetListAsync(m => m.UserId == typedUserId);
         tokens.ForEach(m => m.IsDeleted = true);
 
         await unitOfWork.CommitAsync();
@@ -81,7 +99,7 @@ public class UserService(
         // loads all rows — prefer GetAsPaginatedListAsync for large datasets
         var datas = await userRepository.GetListAsync();
 
-        return new SuccessDataResult<List<UserToListDto>>(mapper.Map<List<UserToListDto>>(datas),
+        return new SuccessDataResult<List<UserToListDto>>(userMapper.ToListDtos(datas),
             Messages.Success.Translate());
     }
 
@@ -90,7 +108,7 @@ public class UserService(
         var data = await userRepository.GetAsync(m => m.Id == id);
         if (data is null) return new ErrorDataResult<UserToListDto>(Messages.UserIsNotExist.Translate());
 
-        return new SuccessDataResult<UserToListDto>(mapper.Map<UserToListDto>(data), Messages.Success.Translate());
+        return new SuccessDataResult<UserToListDto>(userMapper.ToListDto(data), Messages.Success.Translate());
     }
 
     public async Task<IResult> UpdateAsync(Guid id, UserToUpdateDto updateDto)
@@ -98,40 +116,41 @@ public class UserService(
         if (await userRepository.IsUserExistAsync(updateDto.Email, id))
             return new ErrorResult(Messages.UserIsExist.Translate());
 
-        updateDto = updateDto with
+        if (updateDto.RoleId is null)
         {
-            RoleId = updateDto.RoleId is null
-                ? (await roleRepository.GetAsync(m => m.Key == UserType.Guest.ToString()))?.Id
-                : updateDto.RoleId
-        };
+            var guest = await roleRepository.GetAsync(m => m.Key == UserType.Guest.ToString());
+            if (guest is not null) updateDto = updateDto with { RoleId = new RoleId(guest.Id) };
+        }
 
-        var old = await userRepository.GetAsNoTrackingAsync(u => u.Id == id);
-        if (old is null) return new ErrorResult(Messages.UserIsNotExist.Translate());
+        // Load the tracked entity and apply the DTO over it. This preserves every column the
+        // DTO doesn't carry — including FailedLoginAttempts / LockedUntil from P1.4 — instead
+        // of letting EF emit zeros for them like the old "map fresh entity + UpdateUser" dance
+        // silently did.
+        var existing = await userRepository.GetAsync(u => u.Id == id);
+        if (existing is null) return new ErrorResult(Messages.UserIsNotExist.Translate());
 
-        var data = mapper.Map<User>(updateDto);
-
-        data.Id = id;
-        data.ProfileFileId = old.ProfileFileId;
-
-        userRepository.UpdateUser(data);
+        userMapper.UpdateEntity(updateDto, existing);
         await unitOfWork.CommitAsync();
+
+        // User's role may have changed — drop the cached permission set so the next request resolves fresh.
+        await userPermissionsCache.InvalidateAsync(id);
 
         return new SuccessResult(Messages.Success.Translate());
     }
 
-    public async Task<IDataResult<PaginatedList<UserToListDto>>> GetAsPaginatedListAsync()
+    public async Task<IDataResult<PagedResult<UserToListDto>>> GetAsPaginatedListAsync()
     {
-        var datas = userRepository.GetList();
-        var paginationDto = paginationContext.GetPagination();
+        var pagination = paginationContext.GetPagination();
 
-        var response = await PaginatedList<User>.CreateAsync(datas.OrderBy(m => m.Id), paginationDto.PageIndex,
-            paginationDto.PageSize);
+        // Always page off an ordered query — EF warns about pagination on unordered sources and
+        // the page contents become non-deterministic across calls.
+        var page = await userRepository.GetList()
+            .OrderBy(u => u.Id)
+            .PageAsync(pagination.PageIndex, pagination.PageSize);
 
-        var responseDto = new PaginatedList<UserToListDto>(
-            mapper.Map<List<UserToListDto>>(response.Items),
-            response.TotalRecordCount, response.PageIndex, response.TotalPageCount);
+        var projected = page.Map(items =>
+            userMapper.ToListDtos(items));
 
-        return new SuccessDataResult<PaginatedList<UserToListDto>>(responseDto,
-            Messages.Success.Translate());
+        return new SuccessDataResult<PagedResult<UserToListDto>>(projected, Messages.Success.Translate());
     }
 }

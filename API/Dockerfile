@@ -1,25 +1,29 @@
-#See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
+# Build the API image from the solution root:
+#   docker build -t nlayered-starter-api -f API/Dockerfile .
+# Or via docker compose (recommended):
+#   docker compose -f API/docker-compose.yml up --build
 
-# TO BUILD 
-# docker build -t imagename/tag -f ProjectFolder/Dockerfile .
-# TO PUSH
-# docker push accountname/projectname:1.0.0
-
-FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
+EXPOSE 8080
+EXPOSE 8081
 
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY ["global.json", "./"]
 COPY ["API/API.csproj", "API/"]
 COPY ["BLL/BLL.csproj", "BLL/"]
 COPY ["CORE/CORE.csproj", "CORE/"]
 COPY ["DTO/DTO.csproj", "DTO/"]
 COPY ["ENTITIES/ENTITIES.csproj", "ENTITIES/"]
 COPY ["DAL/DAL.csproj", "DAL/"]
+COPY ["GRAPHQL/GRAPHQL.csproj", "GRAPHQL/"]
 COPY ["MEDIATRS/MEDIATRS.csproj", "MEDIATRS/"]
+COPY ["MESSAGEBUS/MESSAGEBUS.csproj", "MESSAGEBUS/"]
+COPY ["NOTIFICATIONS/NOTIFICATIONS.csproj", "NOTIFICATIONS/"]
+COPY ["OUTBOX/OUTBOX.csproj", "OUTBOX/"]
 COPY ["REFITS/REFITS.csproj", "REFITS/"]
+COPY ["STORAGE/STORAGE.csproj", "STORAGE/"]
 RUN dotnet restore "API/API.csproj"
 COPY . .
 WORKDIR "/src/API"
@@ -31,4 +35,5 @@ RUN dotnet publish "API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+ENV ASPNETCORE_URLS=http://+:8080
 ENTRYPOINT ["dotnet", "API.dll"]

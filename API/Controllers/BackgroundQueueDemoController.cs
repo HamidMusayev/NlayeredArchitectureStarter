@@ -1,8 +1,6 @@
 using CORE.Abstract;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using NOTIFICATIONS.Abstract;
 
 namespace API.Controllers;

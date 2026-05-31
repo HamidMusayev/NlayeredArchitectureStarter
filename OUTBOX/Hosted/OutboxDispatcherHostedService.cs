@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
+using CORE.Concrete.Observability;
 using CORE.Config;
 using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
@@ -69,24 +71,26 @@ public sealed class OutboxDispatcherHostedService(
         var pending = await repo.GetPendingAsync(batchSize, ct);
         if (pending.Count == 0) return;
 
+        var maxAttempts = config.MessageBusSettings.OutboxMaxAttempts;
+
         foreach (var row in pending)
+        {
+            row.LastAttemptedAt = DateTimeOffset.UtcNow;
+
+            // Start a per-row activity so OTel sees a span for each dispatch, then restore the
+            // originating request's correlation id so logs / outbound calls inside the handler
+            // share the same id as the request that produced the message.
+            using var activity = new Activity("outbox.dispatch").Start();
+            using var correlationScope = CorrelationContext.Push(row.CorrelationId);
+
             try
             {
                 var messageType = Type.GetType(row.Type, false);
                 if (messageType is null)
-                {
-                    row.Error = $"Unable to resolve CLR type: {row.Type}";
-                    row.AttemptCount++;
-                    continue;
-                }
+                    throw new InvalidOperationException($"Unable to resolve CLR type: {row.Type}");
 
-                var message = JsonSerializer.Deserialize(row.Payload, messageType);
-                if (message is null)
-                {
-                    row.Error = "JSON deserialization returned null";
-                    row.AttemptCount++;
-                    continue;
-                }
+                var message = JsonSerializer.Deserialize(row.Payload, messageType)
+                              ?? throw new InvalidOperationException("JSON deserialization returned null");
 
                 var closed = PublishGenericMethod.MakeGenericMethod(messageType);
                 var task = (Task)closed.Invoke(bus, [message, ct])!;
@@ -101,7 +105,16 @@ public sealed class OutboxDispatcherHostedService(
                 row.AttemptCount++;
                 row.Error = ex.Message;
                 logger.LogWarning(ex, "Outbox row {Id} publish failed (attempt {Attempt})", row.Id, row.AttemptCount);
+
+                if (maxAttempts > 0 && row.AttemptCount >= maxAttempts)
+                {
+                    row.DeadLetteredAt = DateTimeOffset.UtcNow;
+                    logger.LogError(
+                        "Outbox row {Id} dead-lettered after {Attempts} attempts. Last error: {Error}",
+                        row.Id, row.AttemptCount, row.Error);
+                }
             }
+        }
 
         await uow.CommitAsync(ct);
     }

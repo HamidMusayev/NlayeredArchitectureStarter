@@ -6,30 +6,32 @@ namespace DAL.EntityFramework.Abstract;
 public interface ITokenRepository : IGenericRepository<Token>
 {
     /// <summary>
-    ///     Validates an access+refresh pair: must exist, not be revoked, not be already used,
-    ///     and the access token must not be expired. Used by the standard <c>[ValidateToken]</c>
-    ///     attribute on protected endpoints.
+    ///     Validates a JWT id + refresh pair: a row with the given <paramref name="jti" /> and
+    ///     refresh token must exist, not be revoked, not be already used, and the access token
+    ///     must not be expired. Used by the standard <c>[ValidateToken]</c> attribute on
+    ///     protected endpoints.
     /// </summary>
-    Task<bool> IsValid(string accessToken, string refreshToken);
+    Task<bool> IsValid(Guid jti, string refreshToken);
 
     /// <summary>
     ///     Same predicate as <see cref="IsValid" /> but returns the matching <see cref="Token" />
     ///     so callers can read <see cref="Token.AccessTokenExpireDate" /> for cache-TTL math.
     ///     Used by <c>TokenService.CheckValidationAsync</c> to populate the introspection cache.
     /// </summary>
-    Task<Token?> GetForValidationAsync(string accessToken, string refreshToken, CancellationToken ct = default);
+    Task<Token?> GetForValidationAsync(Guid jti, string refreshToken, CancellationToken ct = default);
 
     /// <summary>
-    ///     Returns all <see cref="Token.IsDeleted" />=false rows for an access token —
-    ///     used by the logout path so soft-deletes hit every row.
+    ///     Returns all <see cref="Token.IsDeleted" />=false rows for a JWT id — used by the
+    ///     logout path so soft-deletes hit every row sharing the jti (usually one).
     /// </summary>
-    Task<List<Token>> GetActiveTokensAsync(string accessToken);
+    Task<List<Token>> GetActiveTokensByJtiAsync(Guid jti);
 
     /// <summary>
-    ///     Loads the token row keyed by refresh token, eagerly including the owning <see cref="User" />.
-    ///     Used by the rotation flow so the dispatcher can mint a new JWT without an extra round-trip.
+    ///     Loads the token row keyed by SHA-256 hex digest of the refresh token, eagerly
+    ///     including the owning <see cref="User" />. The rotation flow hashes the incoming
+    ///     plaintext (over TLS) before calling this — the plaintext never lands on disk.
     /// </summary>
-    Task<Token?> GetByRefreshTokenAsync(string refreshToken, CancellationToken ct = default);
+    Task<Token?> GetByRefreshTokenHashAsync(string refreshTokenHash, CancellationToken ct = default);
 
     /// <summary>
     ///     Marks every <see cref="Token" /> in the given family as revoked and returns the

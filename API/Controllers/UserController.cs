@@ -2,6 +2,7 @@
 using BLL.Abstract;
 using CORE.Abstract;
 using CORE.Localization;
+using DTO.Common;
 using DTO.Responses;
 using DTO.User;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -24,7 +25,7 @@ public class UserController(IUserService userService, IJwtService jwtService, IA
     : ControllerBase
 {
     [SwaggerOperation(Summary = "get users as paginated list")]
-    [Produces(typeof(IDataResult<List<UserToListDto>>))]
+    [Produces(typeof(IDataResult<PagedResult<UserToListDto>>))]
     [HttpGet("paginate")]
     public async Task<IActionResult> GetAsPaginated()
     {
@@ -50,7 +51,7 @@ public class UserController(IUserService userService, IJwtService jwtService, IA
         if (userId is null)
             return Unauthorized(new ErrorResult(Messages.CanNotFoundUserIdInYourAccessToken.Translate()));
 
-        var response = await userService.GetAsync(userId.Value);
+        var response = await userService.GetAsync(userId.Value.Value);
         return Ok(response);
     }
 

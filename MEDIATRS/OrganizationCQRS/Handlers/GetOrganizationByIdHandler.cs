@@ -1,4 +1,4 @@
-using AutoMapper;
+using BLL.Mappers;
 using CORE.Localization;
 using DAL.EntityFramework.Abstract;
 using DTO.Organization;
@@ -14,7 +14,8 @@ namespace MEDIATRS.OrganizationCQRS.Handlers;
 /// </summary>
 public class GetOrganizationByIdHandler(
     IOrganizationRepository organizationRepository,
-    IMapper mapper) : IRequestHandler<GetOrganizationByIdQuery, IDataResult<OrganizationToListDto>>
+    OrganizationMapper organizationMapper)
+    : IRequestHandler<GetOrganizationByIdQuery, IDataResult<OrganizationToListDto>>
 {
     public async Task<IDataResult<OrganizationToListDto>> Handle(GetOrganizationByIdQuery request,
         CancellationToken cancellationToken)
@@ -23,8 +24,7 @@ public class GetOrganizationByIdHandler(
         if (data is null)
             return new ErrorDataResult<OrganizationToListDto>(Messages.DataNotFound.Translate());
 
-        var result = mapper.Map<OrganizationToListDto>(data);
-
-        return new SuccessDataResult<OrganizationToListDto>(result, Messages.Success.Translate());
+        return new SuccessDataResult<OrganizationToListDto>(organizationMapper.ToListDto(data),
+            Messages.Success.Translate());
     }
 }

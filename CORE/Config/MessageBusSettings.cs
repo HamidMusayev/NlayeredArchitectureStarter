@@ -18,6 +18,24 @@ public record MessageBusSettings
     /// </summary>
     public int OutboxBatchSize { get; set; } = 50;
 
+    /// <summary>
+    ///     Failed publish attempts a row gets before the dispatcher dead-letters it. Default 10.
+    ///     Set to 0 (or negative) to disable dead-lettering — bad rows will then retry forever
+    ///     and block the queue head behind themselves.
+    /// </summary>
+    public int OutboxMaxAttempts { get; set; } = 10;
+
+    /// <summary>
+    ///     How long successfully-processed outbox rows are kept before <c>OutboxCleanupJob</c>
+    ///     bulk-deletes them. Default 30 days. Set to 0 (or negative) to disable the prune —
+    ///     useful if you treat the outbox as an audit log of every published event.
+    ///     <para>
+    ///         Dead-lettered rows are <b>not</b> pruned by this job; they need a human's eyes
+    ///         and the admin endpoint to triage.
+    ///     </para>
+    /// </summary>
+    public int OutboxRetentionDays { get; set; } = 30;
+
     public RabbitMqSettings RabbitMq { get; set; } = new();
 }
 

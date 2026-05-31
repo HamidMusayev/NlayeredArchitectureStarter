@@ -53,9 +53,9 @@ public class ElasticSearchDemoController(IElasticSearchService<UserToListDto> se
             Guid.NewGuid(),
             username,
             email,
-            ContactNumber: "+1-555-0100",
-            Role: null,
-            ProfileFile: null);
+            "+1-555-0100",
+            null,
+            null);
 
         var ok = await search.AddToIndexAsync(doc, indexName);
         return ok
@@ -69,11 +69,11 @@ public class ElasticSearchDemoController(IElasticSearchService<UserToListDto> se
     {
         var docs = Enumerable.Range(1, count).Select(i => new UserToListDto(
             Guid.NewGuid(),
-            Username: $"bulk-user-{i:D3}",
-            Email: $"bulk-user-{i:D3}@example.com",
-            ContactNumber: $"+1-555-{i:D4}",
-            Role: null,
-            ProfileFile: null)).ToList();
+            $"bulk-user-{i:D3}",
+            $"bulk-user-{i:D3}@example.com",
+            $"+1-555-{i:D4}",
+            null,
+            null)).ToList();
 
         var ok = await search.AddRangeToIndexAsync(docs, indexName);
         return ok

@@ -1,4 +1,5 @@
 using DTO.User;
+using ENTITIES.Identifiers;
 
 namespace CORE.Abstract;
 
@@ -10,11 +11,26 @@ namespace CORE.Abstract;
 /// </summary>
 public interface IJwtService
 {
-    string CreateTokenForUser(UserToListDto user, DateTime expirationDate);
+    IssuedAccessToken CreateTokenForUser(UserToListDto user, DateTime expirationDate);
     public string? GetTokenString();
     public bool IsValidToken();
-    public Guid? GetUserIdFromToken();
+    public UserId? GetUserIdFromToken();
+
+    /// <summary>
+    ///     Returns the <c>jti</c> claim of the current inbound JWT, or <c>null</c> when the
+    ///     header is missing or the claim is absent / malformed. Used by
+    ///     <c>ValidateTokenFilter</c> and the logout flow as the persisted-token key.
+    /// </summary>
+    public Guid? GetJtiFromToken();
+
     public string GenerateRefreshToken();
     public string? GetRoleFromToken();
     public string TrimToken(string? jwtToken);
 }
+
+/// <summary>
+///     Pair returned by <see cref="IJwtService.CreateTokenForUser" />: the encoded JWT string
+///     handed back to the client, and the <c>jti</c> Guid the server persists for revocation /
+///     introspection. The plain JWT never lands in the database.
+/// </summary>
+public sealed record IssuedAccessToken(string Jwt, Guid Jti);

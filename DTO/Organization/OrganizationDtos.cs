@@ -1,4 +1,5 @@
 using DTO.File;
+using ENTITIES.Identifiers;
 
 namespace DTO.Organization;
 
@@ -7,7 +8,7 @@ public record OrganizationToAddDto(
     string FullName,
     string ShortName,
     string Address,
-    Guid? ParentId,
+    OrganizationId? ParentId,
     string PhoneNumber,
     string Tin,
     string Email,
@@ -33,7 +34,7 @@ public record OrganizationToUpdateDto(
     string FullName,
     string ShortName,
     string Address,
-    Guid? ParentId,
+    OrganizationId? ParentId,
     string PhoneNumber,
     string Tin,
     string Email,

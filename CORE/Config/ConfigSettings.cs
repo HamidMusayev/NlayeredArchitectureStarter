@@ -29,4 +29,5 @@ public record ConfigSettings
     public FeatureFlagSettings FeatureFlagSettings { get; set; } = new();
     public DistributedLockSettings DistributedLockSettings { get; set; } = new();
     public MultiTenancySettings MultiTenancySettings { get; set; } = new();
+    public AuditLogSettings AuditLogSettings { get; set; } = new();
 }

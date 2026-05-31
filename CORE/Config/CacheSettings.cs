@@ -19,6 +19,14 @@ public record CacheSettings
     ///     skewed replica can't briefly honor a token whose marker has already expired.
     /// </summary>
     public int TokenCacheGraceSeconds { get; set; } = 60;
+
+    /// <summary>
+    ///     Lifetime of cached user → permission-keys entries served by
+    ///     <c>IUserPermissionsCache</c>. Default 60 minutes. Lower = quicker propagation of role
+    ///     changes; higher = fewer DB hits. With <see cref="CacheProvider.Memory" />, a lower TTL
+    ///     is also how cross-replica drift gets resolved.
+    /// </summary>
+    public int UserPermissionsTtlMinutes { get; set; } = 60;
 }
 
 public enum CacheProvider

@@ -1,4 +1,5 @@
 using CORE.Abstract;
+using ENTITIES.Identifiers;
 
 namespace CORE.Concrete;
 
@@ -26,8 +27,8 @@ public sealed class SystemCurrentUser : ICurrentUser
     ///     Well-known seed identifier for the "system" actor. Stable across deployments so
     ///     you can filter / audit system-originated writes consistently.
     /// </summary>
-    public static readonly Guid SeedUserId = new("00000000-0000-0000-0000-000000000001");
+    public static readonly UserId SeedUserId = new(new Guid("00000000-0000-0000-0000-000000000001"));
 
-    public Guid? UserId => SeedUserId;
+    public UserId? UserId => SeedUserId;
     public string? Role => "system";
 }

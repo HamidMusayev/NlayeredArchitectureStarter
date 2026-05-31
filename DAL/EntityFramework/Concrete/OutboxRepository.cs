@@ -7,9 +7,10 @@ using Microsoft.EntityFrameworkCore;
 namespace DAL.EntityFramework.Concrete;
 
 /// <summary>
-///     EF Core implementation of <see cref="IOutboxRepository" />. Extends the generic surface with
-///     <see cref="IOutboxRepository.GetPendingAsync" /> which returns the oldest unprocessed
-///     <see cref="OutboxMessage" /> rows in FIFO order for the dispatcher background service.
+///     EF Core implementation of <see cref="IOutboxRepository" />. Extends the generic surface
+///     with <see cref="IOutboxRepository.GetPendingAsync" /> (FIFO drain for the dispatcher,
+///     excluding dead-lettered rows) and <see cref="IOutboxRepository.GetDeadLetteredAsync" />
+///     (paged listing for the admin endpoint).
 /// </summary>
 public class OutboxRepository(DataContext dataContext)
     : GenericRepository<OutboxMessage>(dataContext), IOutboxRepository
@@ -19,9 +20,28 @@ public class OutboxRepository(DataContext dataContext)
     public Task<List<OutboxMessage>> GetPendingAsync(int batchSize, CancellationToken ct = default)
     {
         return _dataContext.OutboxMessages
-            .Where(o => o.ProcessedOnUtc == null)
+            .Where(o => o.ProcessedOnUtc == null && o.DeadLetteredAt == null)
             .OrderBy(o => o.OccurredOnUtc)
             .Take(batchSize)
             .ToListAsync(ct);
+    }
+
+    public Task<List<OutboxMessage>> GetDeadLetteredAsync(int skip, int take, CancellationToken ct = default)
+    {
+        return _dataContext.OutboxMessages
+            .Where(o => o.DeadLetteredAt != null)
+            .OrderByDescending(o => o.DeadLetteredAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
+    public Task<int> PruneProcessedOlderThanAsync(DateTimeOffset cutoff, CancellationToken ct = default)
+    {
+        return _dataContext.OutboxMessages
+            .Where(o => o.ProcessedOnUtc != null
+                        && o.ProcessedOnUtc < cutoff
+                        && o.DeadLetteredAt == null)
+            .ExecuteDeleteAsync(ct);
     }
 }

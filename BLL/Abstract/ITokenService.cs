@@ -1,20 +1,23 @@
 using DTO.Auth;
 using DTO.Responses;
-using DTO.Token;
 using DTO.User;
 
 namespace BLL.Abstract;
 
 /// <summary>
 ///     JWT + refresh-token lifecycle service. Handles token creation (new family on login),
-///     rotation (reuse-detection-aware, same family), validation, lookup, and soft-delete.
+///     rotation (reuse-detection-aware, same family), validation, and soft-delete.
 /// </summary>
 public interface ITokenService
 {
     Task<IResult> AddAsync(LoginResponseDto responseDto);
     Task<IResult> SoftDeleteAsync(Guid id);
-    Task<IDataResult<TokenToListDto>> GetAsync(string accessToken, string refreshToken);
-    Task<IResult> CheckValidationAsync(string accessToken, string refreshToken);
+
+    /// <summary>
+    ///     Validates a JWT id + refresh pair via the introspection cache (DB on miss). Called
+    ///     per request by the <c>[ValidateToken]</c> filter.
+    /// </summary>
+    Task<IResult> CheckValidationAsync(Guid jti, string refreshToken);
 
     /// <summary>
     ///     Mints a fresh access+refresh pair for the user. Starts a new token family (new <c>FamilyId</c>).

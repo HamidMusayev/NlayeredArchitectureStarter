@@ -1,19 +1,20 @@
-﻿using AutoMapper;
 using DTO.Permission;
 using ENTITIES.Entities;
+using Riok.Mapperly.Abstractions;
 
 namespace BLL.Mappers;
 
 /// <summary>
-///     AutoMapper profile for <c>Permission</c> entity ↔ DTO conversions.
-///     Covers add, update (inbound), and list (outbound) DTOs.
+///     Compile-time mapper for <c>Permission</c> ↔ DTO conversions (Mapperly source generator).
+///     <see cref="UpdateEntity" /> writes to a caller-constructed target so audit / nav fields
+///     the DTOs don't carry stay untouched.
 /// </summary>
-public class PermissionMapper : Profile
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class PermissionMapper
 {
-    public PermissionMapper()
-    {
-        CreateMap<PermissionToAddDto, Permission>();
-        CreateMap<PermissionToUpdateDto, Permission>();
-        CreateMap<Permission, PermissionToListDto>();
-    }
+    public partial PermissionToListDto ToListDto(Permission source);
+    public partial List<PermissionToListDto> ToListDtos(IEnumerable<Permission> source);
+
+    public partial void UpdateEntity(PermissionToAddDto source, Permission target);
+    public partial void UpdateEntity(PermissionToUpdateDto source, Permission target);
 }

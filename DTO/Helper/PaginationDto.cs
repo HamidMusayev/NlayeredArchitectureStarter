@@ -2,8 +2,9 @@
 
 /// <summary>
 ///     Standard pagination input — bound from query string by the
-///     <c>HttpPaginationContext</c> resolver. Page numbers are 1-based; <c>PageIndex = 0</c>
-///     is a deliberate "return everything" sentinel handled by <c>PaginatedList&lt;T&gt;</c>.
+///     <c>HttpPaginationContext</c> resolver. Page numbers are 1-based. Pass <c>PageSize = 0</c>
+///     to <c>IQueryable.PageAsync</c> to return every row in one page (intentional opt-in only;
+///     prefer a real page size for normal list endpoints).
 /// </summary>
 public record PaginationDto
 {

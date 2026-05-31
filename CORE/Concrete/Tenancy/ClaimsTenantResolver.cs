@@ -1,5 +1,6 @@
 using CORE.Abstract;
 using CORE.Config;
+using ENTITIES.Identifiers;
 using Microsoft.AspNetCore.Http;
 
 namespace CORE.Concrete.Tenancy;
@@ -11,13 +12,13 @@ namespace CORE.Concrete.Tenancy;
 /// </summary>
 public sealed class ClaimsTenantResolver(IHttpContextAccessor httpContextAccessor, ConfigSettings config) : ITenant
 {
-    public Guid? TenantId
+    public TenantId? TenantId
     {
         get
         {
             var user = httpContextAccessor.HttpContext?.User;
             var raw = user?.FindFirst(config.MultiTenancySettings.ClaimName)?.Value;
-            return Guid.TryParse(raw, out var id) ? id : null;
+            return Guid.TryParse(raw, out var id) ? new TenantId(id) : null;
         }
     }
 }

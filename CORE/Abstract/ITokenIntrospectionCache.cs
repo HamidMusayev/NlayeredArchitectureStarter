@@ -2,7 +2,8 @@ namespace CORE.Abstract;
 
 /// <summary>
 ///     Distributed cache fronting the relational <c>Tokens</c> table for the per-request
-///     <c>[ValidateToken]</c> check. Three states per access token:
+///     <c>[ValidateToken]</c> check. Keyed on the JWT's <c>jti</c> claim — the access token
+///     itself never appears in the cache. Three states per jti:
 ///     <list type="bullet">
 ///         <item><see cref="TokenCacheStatus.Valid" /> — issued, not revoked, refresh hash present for pair comparison.</item>
 ///         <item><see cref="TokenCacheStatus.Revoked" /> — explicitly invalidated (logout, family revoke).</item>
@@ -18,13 +19,16 @@ namespace CORE.Abstract;
 public interface ITokenIntrospectionCache
 {
     /// <summary>Probes the cache. Never throws — backend failures surface as <see cref="TokenCacheStatus.Unknown" />.</summary>
-    Task<TokenCacheState> GetAsync(string accessToken, CancellationToken ct = default);
+    Task<TokenCacheState> GetAsync(Guid jti, CancellationToken ct = default);
 
     /// <summary>Marks the pair valid for <paramref name="ttl" />. The refresh token is stored as a hash for pair comparison.</summary>
-    Task MarkValidAsync(string accessToken, string refreshToken, TimeSpan ttl, CancellationToken ct = default);
+    Task MarkValidAsync(Guid jti, string refreshToken, TimeSpan ttl, CancellationToken ct = default);
 
-    /// <summary>Marks the access token revoked for <paramref name="ttl" /> (typically the JWT's remaining lifetime + grace).</summary>
-    Task MarkRevokedAsync(string accessToken, TimeSpan ttl, CancellationToken ct = default);
+    /// <summary>
+    ///     Marks <paramref name="jti" /> revoked for <paramref name="ttl" /> (typically the JWT's remaining lifetime +
+    ///     grace).
+    /// </summary>
+    Task MarkRevokedAsync(Guid jti, TimeSpan ttl, CancellationToken ct = default);
 }
 
 /// <summary>Result of a cache probe — never null, always one of the three documented states.</summary>

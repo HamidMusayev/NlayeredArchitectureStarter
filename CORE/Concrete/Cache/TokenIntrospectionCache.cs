@@ -12,10 +12,13 @@ namespace CORE.Concrete.Cache;
 ///         Cache values are tiny strings:
 ///         <list type="bullet">
 ///             <item><c>"r"</c> — revoked.</item>
-///             <item><c>"v:{sha256(refreshToken)}"</c> — valid, with the issued refresh hash inline so the
-///                 filter can verify the pair without a second store call.</item>
+///             <item>
+///                 <c>"v:{sha256(refreshToken)}"</c> — valid, with the issued refresh hash inline so the
+///                 filter can verify the pair without a second store call.
+///             </item>
 ///         </list>
-///         Access tokens are never stored as keys — only their SHA-256 hash. Same for refresh tokens.
+///         Keys are <c>"tok:{jti:N}"</c> — the bare JWT id, no hashing needed because the jti is
+///         itself a random Guid. Refresh tokens still get hashed before storage / comparison.
 ///     </para>
 ///     <para>Backend errors fail-open: reads return <see cref="TokenCacheStatus.Unknown" />, writes log-and-swallow.</para>
 /// </summary>
@@ -25,11 +28,11 @@ public sealed class TokenIntrospectionCache(ICacheService cache, ILogger<TokenIn
     private const string Revoked = "r";
     private const string ValidPrefix = "v:";
 
-    public async Task<TokenCacheState> GetAsync(string accessToken, CancellationToken ct = default)
+    public async Task<TokenCacheState> GetAsync(Guid jti, CancellationToken ct = default)
     {
         try
         {
-            var raw = await cache.GetAsync<string>(Key(accessToken), ct);
+            var raw = await cache.GetAsync<string>(Key(jti), ct);
             if (raw is null) return new TokenCacheState(TokenCacheStatus.Unknown, null);
             if (raw == Revoked) return new TokenCacheState(TokenCacheStatus.Revoked, null);
             if (raw.StartsWith(ValidPrefix, StringComparison.Ordinal))
@@ -43,13 +46,13 @@ public sealed class TokenIntrospectionCache(ICacheService cache, ILogger<TokenIn
         }
     }
 
-    public async Task MarkValidAsync(string accessToken, string refreshToken, TimeSpan ttl,
+    public async Task MarkValidAsync(Guid jti, string refreshToken, TimeSpan ttl,
         CancellationToken ct = default)
     {
         if (ttl <= TimeSpan.Zero) return;
         try
         {
-            await cache.SetAsync(Key(accessToken), ValidPrefix + Hash(refreshToken), ttl, ct);
+            await cache.SetAsync(Key(jti), ValidPrefix + Hash(refreshToken), ttl, ct);
         }
         catch (Exception ex)
         {
@@ -57,12 +60,12 @@ public sealed class TokenIntrospectionCache(ICacheService cache, ILogger<TokenIn
         }
     }
 
-    public async Task MarkRevokedAsync(string accessToken, TimeSpan ttl, CancellationToken ct = default)
+    public async Task MarkRevokedAsync(Guid jti, TimeSpan ttl, CancellationToken ct = default)
     {
         if (ttl <= TimeSpan.Zero) return;
         try
         {
-            await cache.SetAsync(Key(accessToken), Revoked, ttl, ct);
+            await cache.SetAsync(Key(jti), Revoked, ttl, ct);
         }
         catch (Exception ex)
         {
@@ -70,12 +73,15 @@ public sealed class TokenIntrospectionCache(ICacheService cache, ILogger<TokenIn
         }
     }
 
-    /// <summary>SHA-256 hex digest. Public so consumers can pre-hash for comparison.</summary>
+    /// <summary>SHA-256 hex digest. Public so consumers (refresh-token hashing) can pre-hash for comparison.</summary>
     public static string Hash(string value)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
         return Convert.ToHexStringLower(bytes);
     }
 
-    private static string Key(string accessToken) => "tok:" + Hash(accessToken);
+    private static string Key(Guid jti)
+    {
+        return "tok:" + jti.ToString("N");
+    }
 }

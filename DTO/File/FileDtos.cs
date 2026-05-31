@@ -1,4 +1,5 @@
 using ENTITIES.Enums;
+using ENTITIES.Identifiers;
 using Microsoft.AspNetCore.Http;
 
 namespace DTO.File;
@@ -33,7 +34,7 @@ public record FileUploadRequestDto(
     IFormFile? File,
     FileType Type,
     Guid? UserId,
-    Guid? OrganizationId
+    OrganizationId? OrganizationId
 );
 
 /// <summary>Inbound payload for deleting a previously uploaded file by its opaque hashed name.</summary>
@@ -41,5 +42,5 @@ public record FileRemoveRequestDto(
     string HashName,
     FileType Type,
     Guid? UserId,
-    Guid? OrganizationId
+    OrganizationId? OrganizationId
 );

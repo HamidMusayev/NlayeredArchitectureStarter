@@ -1,5 +1,5 @@
-using AutoMapper;
 using BLL.Abstract;
+using BLL.Mappers;
 using CORE.Localization;
 using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
@@ -19,12 +19,16 @@ namespace BLL.Concrete;
 public class RoleService(
     IRoleRepository roleRepository,
     IPermissionRepository permissionRepository,
+    IUserRepository userRepository,
+    IUserPermissionsCache userPermissionsCache,
     IUnitOfWork unitOfWork,
-    IMapper mapper) : IRoleService
+    RoleMapper roleMapper,
+    PermissionMapper permissionMapper) : IRoleService
 {
     public async Task<IResult> AddAsync(RoleToAddDto addDto)
     {
-        var data = mapper.Map<Role>(addDto);
+        var data = new Role { Name = string.Empty, Key = string.Empty };
+        roleMapper.UpdateEntity(addDto, data);
 
         if (addDto.PermissionIds is { Count: > 0 })
         {
@@ -46,37 +50,45 @@ public class RoleService(
         roleRepository.SoftDelete(data);
         await unitOfWork.CommitAsync();
 
+        await InvalidateUsersOfRoleAsync(id);
+
         return new SuccessResult(Messages.Success.Translate());
     }
 
     public async Task<IDataResult<List<RoleToListDto>>> GetAsync()
     {
-        var datas = mapper.Map<List<RoleToListDto>>(await roleRepository.GetListAsync());
+        var datas = roleMapper.ToListDtos(await roleRepository.GetListAsync());
         return new SuccessDataResult<List<RoleToListDto>>(datas, Messages.Success.Translate());
     }
 
     public async Task<IDataResult<RoleToListDto>> GetAsync(Guid id)
     {
-        var data = mapper.Map<RoleToListDto>(await roleRepository.GetAsync(m => m.Id == id));
+        var role = await roleRepository.GetAsync(m => m.Id == id);
+        if (role is null)
+            return new ErrorDataResult<RoleToListDto>(Messages.DataNotFound.Translate());
 
-        return new SuccessDataResult<RoleToListDto>(data, Messages.Success.Translate());
+        return new SuccessDataResult<RoleToListDto>(roleMapper.ToListDto(role), Messages.Success.Translate());
     }
 
     public async Task<IResult> UpdateAsync(Guid id, RoleToUpdateDto updateDto)
     {
-        var data = mapper.Map<Role>(updateDto);
-        data.Id = id;
+        // Load the tracked entity and layer the DTO over it so columns the DTO doesn't carry
+        // (audit fields, etc.) aren't zeroed by the EF change tracker.
+        var existing = await roleRepository.GetAsync(m => m.Id == id);
+        if (existing is null) return new ErrorResult(Messages.DataNotFound.Translate());
+
+        roleMapper.UpdateEntity(updateDto, existing);
 
         await roleRepository.ClearRolePermissionsAync(id);
-
         if (updateDto.PermissionIds is { Count: > 0 })
         {
             var permissions = await permissionRepository.GetListAsync(m => updateDto.PermissionIds.Contains(m.Id));
-            data.Permissions = permissions;
+            existing.Permissions = permissions;
         }
 
-        roleRepository.UpdateRole(data);
         await unitOfWork.CommitAsync();
+
+        await InvalidateUsersOfRoleAsync(id);
 
         return new SuccessResult(Messages.Success.Translate());
     }
@@ -87,8 +99,20 @@ public class RoleService(
         if (role is null)
             return new ErrorDataResult<List<PermissionToListDto>>(Messages.DataNotFound.Translate());
 
-        var datas = mapper.Map<List<PermissionToListDto>>(role.Permissions);
+        var datas = permissionMapper.ToListDtos(role.Permissions);
 
         return new SuccessDataResult<List<PermissionToListDto>>(datas, Messages.Success.Translate());
+    }
+
+    /// <summary>
+    ///     Drops the cached permission set for every user holding <paramref name="roleId" />.
+    ///     Called from update / soft-delete so role changes surface immediately rather than
+    ///     waiting on the cache TTL.
+    /// </summary>
+    private async Task InvalidateUsersOfRoleAsync(Guid roleId)
+    {
+        var userIds = await userRepository.GetUserIdsByRoleAsync(roleId);
+        foreach (var userId in userIds)
+            await userPermissionsCache.InvalidateAsync(userId);
     }
 }

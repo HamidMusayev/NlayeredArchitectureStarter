@@ -18,6 +18,8 @@ dotnet run --project API
 
 Default URL: **https://localhost:7086** (Swagger opens automatically).
 
+Prefer Docker? See **[HOW_TO_RUN.md](./HOW_TO_RUN.md)** for the all-in-Docker and hybrid (infra-only) workflows.
+
 Try the API with the included [`requests.http`](./requests.http) — works in Rider, VS Code (REST Client extension) and Visual Studio. Open it, fire `Login`, and follow the chain.
 
 Default seeded user:

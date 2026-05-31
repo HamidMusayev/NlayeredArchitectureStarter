@@ -24,8 +24,8 @@ public class DistributedLockDemoController(IDistributedLock locks, ILogger<Distr
     public async Task<IActionResult> TryOnce(string resource, [FromQuery] int workSeconds = 5,
         CancellationToken ct = default)
     {
-        await using var handle = await locks.AcquireAsync(resource, wait: null,
-            lifetime: TimeSpan.FromSeconds(workSeconds + 5), ct);
+        await using var handle = await locks.AcquireAsync(resource, null,
+            TimeSpan.FromSeconds(workSeconds + 5), ct);
 
         if (handle is null)
         {
@@ -53,8 +53,8 @@ public class DistributedLockDemoController(IDistributedLock locks, ILogger<Distr
         var requestedAt = DateTimeOffset.UtcNow;
 
         await using var handle = await locks.AcquireAsync(resource,
-            wait: TimeSpan.FromSeconds(waitSeconds),
-            lifetime: TimeSpan.FromSeconds(workSeconds + 5),
+            TimeSpan.FromSeconds(waitSeconds),
+            TimeSpan.FromSeconds(workSeconds + 5),
             ct);
 
         if (handle is null)
@@ -82,8 +82,8 @@ public class DistributedLockDemoController(IDistributedLock locks, ILogger<Distr
     public async Task<IActionResult> RecurringJobGuard(CancellationToken ct)
     {
         await using var handle = await locks.AcquireAsync("daily-digest:send",
-            wait: null,
-            lifetime: TimeSpan.FromMinutes(2),
+            null,
+            TimeSpan.FromMinutes(2),
             ct);
 
         if (handle is null)

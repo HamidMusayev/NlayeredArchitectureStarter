@@ -1,3 +1,4 @@
+using CORE.Concrete.Cache;
 using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.Context;
 using DAL.EntityFramework.GenericRepository;
@@ -7,44 +8,62 @@ using Microsoft.EntityFrameworkCore;
 namespace DAL.EntityFramework.Concrete;
 
 /// <summary>
-///     EF Core implementation of <see cref="ITokenRepository" />. Provides token validation
-///     (<see cref="ITokenRepository.IsValid" />), active-token lookup for logout, refresh-token
-///     lookup (with owning user eager-loaded for rotation), and family-wide revocation triggered
-///     by token-reuse detection.
+///     EF Core implementation of <see cref="ITokenRepository" />. Per-request validation keys on
+///     the JWT's <c>jti</c> claim — the full access token never appears in this layer.
+///     <para>
+///         <see cref="IsValid" /> and <see cref="GetForValidationAsync" /> run on every
+///         authenticated request that misses the introspection cache, so both go through
+///         <c>EF.CompileAsyncQuery</c> — EF parses the query tree once at startup instead of
+///         every call. Family-revoke and dead-letter listings stay regular LINQ because they
+///         run during write-rare paths.
+///     </para>
 /// </summary>
 public class TokenRepository(DataContext dataContext) : GenericRepository<Token>(dataContext), ITokenRepository
 {
-    public Task<bool> IsValid(string accessToken, string refreshToken)
+    // Compiled hot-path queries. Predicate body is parsed + planned once at type init; subsequent
+    // invocations skip the EF query-translation work entirely.
+    private static readonly Func<DataContext, Guid, string, Task<bool>> CompiledIsValid =
+        EF.CompileAsyncQuery((DataContext db, Guid jti, string hash) =>
+            db.Tokens.Any(m =>
+                m.Jti == jti &&
+                m.RefreshTokenHash == hash &&
+                m.UsedAt == null &&
+                !m.IsRevoked &&
+                m.AccessTokenExpireDate > DateTime.UtcNow));
+
+    private static readonly Func<DataContext, Guid, string, Task<Token?>> CompiledGetForValidation =
+        EF.CompileAsyncQuery((DataContext db, Guid jti, string hash) =>
+            db.Tokens.FirstOrDefault(m =>
+                m.Jti == jti &&
+                m.RefreshTokenHash == hash &&
+                m.UsedAt == null &&
+                !m.IsRevoked &&
+                m.AccessTokenExpireDate > DateTime.UtcNow));
+
+    public Task<bool> IsValid(Guid jti, string refreshToken)
     {
-        return dataContext.Tokens.AnyAsync(m =>
-            m.AccessToken == accessToken &&
-            m.RefreshToken == refreshToken &&
-            m.UsedAt == null &&
-            !m.IsRevoked &&
-            m.AccessTokenExpireDate > DateTime.UtcNow);
+        return CompiledIsValid(dataContext, jti, TokenIntrospectionCache.Hash(refreshToken));
     }
 
-    public Task<Token?> GetForValidationAsync(string accessToken, string refreshToken,
+    public Task<Token?> GetForValidationAsync(Guid jti, string refreshToken,
         CancellationToken ct = default)
     {
-        return dataContext.Tokens.FirstOrDefaultAsync(m =>
-            m.AccessToken == accessToken &&
-            m.RefreshToken == refreshToken &&
-            m.UsedAt == null &&
-            !m.IsRevoked &&
-            m.AccessTokenExpireDate > DateTime.UtcNow, ct);
+        // CompileAsyncQuery's scalar overload doesn't accept a CancellationToken parameter —
+        // throw early instead of silently ignoring a requested cancellation.
+        ct.ThrowIfCancellationRequested();
+        return CompiledGetForValidation(dataContext, jti, TokenIntrospectionCache.Hash(refreshToken));
     }
 
-    public Task<List<Token>> GetActiveTokensAsync(string accessToken)
+    public Task<List<Token>> GetActiveTokensByJtiAsync(Guid jti)
     {
-        return dataContext.Tokens.Where(m => m.AccessToken == accessToken).ToListAsync();
+        return dataContext.Tokens.Where(m => m.Jti == jti).ToListAsync();
     }
 
-    public Task<Token?> GetByRefreshTokenAsync(string refreshToken, CancellationToken ct = default)
+    public Task<Token?> GetByRefreshTokenHashAsync(string refreshTokenHash, CancellationToken ct = default)
     {
         return dataContext.Tokens
             .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.RefreshToken == refreshToken, ct);
+            .FirstOrDefaultAsync(t => t.RefreshTokenHash == refreshTokenHash, ct);
     }
 
     public async Task<List<Token>> RevokeFamilyAsync(Guid familyId, CancellationToken ct = default)

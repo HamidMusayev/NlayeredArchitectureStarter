@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CORE.Concrete.Observability;
 using CORE.Config;
 using MESSAGEBUS.Abstract;
 using RabbitMQ.Client;
@@ -43,7 +44,11 @@ public sealed class RabbitMqMessageBus(ConfigSettings config) : IMessageBus, IAs
         {
             ContentType = "application/json",
             DeliveryMode = DeliveryModes.Persistent,
-            Type = routingKey
+            Type = routingKey,
+            // Propagate the correlation id across the broker. RabbitMQ has a first-class
+            // CorrelationId property — the consumer reads it back and pushes onto its activity
+            // baggage before invoking the handler.
+            CorrelationId = CorrelationContext.Current
         };
 
         await _channel!.BasicPublishAsync(

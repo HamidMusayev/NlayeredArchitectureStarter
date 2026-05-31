@@ -1,5 +1,6 @@
 ﻿using API.Attributes;
 using BLL.Abstract;
+using DTO.Common;
 using DTO.Permission;
 using DTO.Responses;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,7 +21,7 @@ namespace API.Controllers;
 public class PermissionController(IPermissionService permissionService) : ControllerBase
 {
     [SwaggerOperation(Summary = "get permissions as paginated list")]
-    [Produces(typeof(IDataResult<List<PermissionToListDto>>))]
+    [Produces(typeof(IDataResult<PagedResult<PermissionToListDto>>))]
     [HttpGet("paginate")]
     public async Task<IActionResult> GetAsPaginated()
     {

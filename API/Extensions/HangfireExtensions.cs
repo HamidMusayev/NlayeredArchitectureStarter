@@ -30,7 +30,7 @@ public static class HangfireExtensions
         return services;
     }
 
-    public static WebApplication UseHangfireDashboard(this WebApplication app)
+    public static WebApplication UseHangfireDashboard(this WebApplication app, ConfigSettings config)
     {
         app.UseHangfireDashboard("/api/hangfire", new DashboardOptions
         {
@@ -42,6 +42,21 @@ public static class HangfireExtensions
             "sample-counter-job",
             job => job.Run(JobCancellationToken.Null),
             "*/30 * * * *",
+            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
+        // Daily prune of audit rows past retention. Cron 02:30 UTC — off-peak for most regions.
+        RecurringJob.AddOrUpdate<AuditLogPruneJob>(
+            "audit-log-prune",
+            job => job.Run(config.AuditLogSettings.RetentionDays, JobCancellationToken.Null),
+            "30 2 * * *",
+            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
+        // Daily prune of successfully-processed outbox rows. 02:45 UTC — staggered after the
+        // audit prune so the two don't compete for the DB lock on a small instance.
+        RecurringJob.AddOrUpdate<OutboxCleanupJob>(
+            "outbox-cleanup",
+            job => job.Run(config.MessageBusSettings.OutboxRetentionDays, JobCancellationToken.Null),
+            "45 2 * * *",
             new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
         return app;

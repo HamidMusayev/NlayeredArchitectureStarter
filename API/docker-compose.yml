@@ -1,35 +1,54 @@
-version: '3.4'
+name: nlayered-starter
 
 services:
-  #api:
-  #  image: ${DOCKER_REGISTRY-}api
-  #  container_name: 'aspcore'
-  #  build:
-  #      context: .
-  #      dockerfile: API/Dockerfile
-  #  environment:
-  #      - ASPNETCORE_ENVIRONMENT=Development
-  #  depends_on: 
-  #      - postgres
-  #  ports:
-  #      - "8081:80"
-  #      - "8082:443"
-  postgres:
-    container_name: 'postgres'
-    image: postgres
-    restart: always
+  api:
+    image: nlayered-starter-api
+    container_name: starter-api
+    build:
+      context: ..
+      dockerfile: API/Dockerfile
     environment:
-      POSTGRES_PASSWORD: postgres
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConfigSettings__ConnectionStrings__AppDb: "Host=postgres;Port=5432;Database=StarterAppDb;Username=postgres;Password=post123;IncludeErrorDetail=true;"
+      ConfigSettings__RedisSettings__Connection: "redis://redis:6379"
+      ConfigSettings__MongoDbSettings__Connection: "mongodb://mongo:27017"
+      ConfigSettings__ElasticSearchSettings__Connection: "http://elasticsearch:9200"
+      ConfigSettings__MessageBusSettings__RabbitMq__HostName: "rabbitmq"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mongo:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+
+  postgres:
+    container_name: starter-postgres
+    image: postgres:16
+    restart: unless-stopped
+    environment:
       POSTGRES_USER: postgres
-      POSTGRES_DB: sde
+      POSTGRES_PASSWORD: post123
+      POSTGRES_DB: StarterAppDb
     ports:
       - "5432:5432"
     volumes:
-      - ../postgres/data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d StarterAppDb" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   pgadmin:
-    container_name: pgadmin4
+    container_name: starter-pgadmin
     image: dpage/pgadmin4
-    restart: always
+    restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: postgres
@@ -37,4 +56,58 @@ services:
     ports:
       - "8009:80"
     volumes:
-      - ../postgres/pgadmin:/var/lib/pgadmin
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+  redis:
+    container_name: starter-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  mongo:
+    container_name: starter-mongo
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  elasticsearch:
+    container_name: starter-elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+
+  rabbitmq:
+    container_name: starter-rabbitmq
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+volumes:
+  postgres-data:
+  pgadmin-data:
+  redis-data:
+  mongo-data:
+  elastic-data:
+  rabbitmq-data:

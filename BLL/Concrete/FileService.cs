@@ -1,5 +1,5 @@
-using AutoMapper;
 using BLL.Abstract;
+using BLL.Mappers;
 using CORE.Localization;
 using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
@@ -19,7 +19,7 @@ namespace BLL.Concrete;
 public class FileService(
     IFileRepository fileRepository,
     IUnitOfWork unitOfWork,
-    IMapper mapper,
+    FileMapper fileMapper,
     IEnumerable<IFileTypeHandler> handlers)
     : IFileService
 {
@@ -51,14 +51,25 @@ public class FileService(
         var data = await fileRepository.GetAsync(m => m.HashName == hashName);
         if (data is null) return new ErrorDataResult<FileToListDto>(Messages.DataNotFound.Translate());
 
-        var mapped = mapper.Map<FileToListDto>(data);
-
-        return new SuccessDataResult<FileToListDto>(mapped, Messages.Success.Translate());
+        return new SuccessDataResult<FileToListDto>(fileMapper.ToListDto(data), Messages.Success.Translate());
     }
 
     private async Task<IDataResult<Guid>> AddAsync(FileToAddDto addDto)
     {
-        var data = mapper.Map<File>(addDto);
+        // Construct the entity explicitly to satisfy its `required` fields; Mapperly then layers
+        // the DTO over the top. Path is non-nullable on the entity but nullable on the DTO —
+        // null-coalesce to empty string after the map so the assignment doesn't NRE.
+        var data = new File
+        {
+            OriginalName = string.Empty,
+            HashName = string.Empty,
+            Extension = string.Empty,
+            Length = 0,
+            Path = string.Empty,
+            Type = addDto.Type
+        };
+        fileMapper.UpdateEntity(addDto, data);
+        data.Path ??= string.Empty;
 
         var added = await fileRepository.AddAsync(data);
         await unitOfWork.CommitAsync();

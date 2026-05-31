@@ -5,6 +5,7 @@ using DAL.EntityFramework.Abstract;
 using DAL.EntityFramework.UnitOfWork;
 using DTO.Auth;
 using DTO.Responses;
+using ENTITIES.Identifiers;
 using NOTIFICATIONS.Abstract;
 
 namespace BLL.Concrete;
@@ -18,7 +19,8 @@ public class AccountRecoveryService(
     IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     IPasswordHasher passwordHasher,
-    IMailService mailService)
+    IMailService mailService,
+    IAuditLog auditLog)
     : IAccountRecoveryService
 {
     public async Task<IResult> SendOtpAsync(string email)
@@ -31,6 +33,9 @@ public class AccountRecoveryService(
 
         await mailService.SendAsync(email, $"Your verification code: {data.LastVerificationCode}");
 
+        await auditLog.LogAsync("auth.password.otp_sent",
+            new UserId(data.Id), "User", data.Id);
+
         return new SuccessResult(Messages.VerificationCodeSent.Translate());
     }
 
@@ -41,12 +46,20 @@ public class AccountRecoveryService(
 
         if (data.LastVerificationCode is null ||
             !data.LastVerificationCode.Equals(dto.VerificationCode))
+        {
+            await auditLog.LogAsync("auth.password.reset_failed",
+                new UserId(data.Id), "User", data.Id,
+                "{\"reason\":\"invalid_otp\"}");
             return new ErrorResult(Messages.InvalidVerificationCode.Translate());
+        }
 
         data.Salt = passwordHasher.GenerateSalt();
         data.Password = passwordHasher.Hash(dto.Password, data.Salt);
         data.LastVerificationCode = null;
         await unitOfWork.CommitAsync();
+
+        await auditLog.LogAsync("auth.password.reset",
+            new UserId(data.Id), "User", data.Id);
 
         return new SuccessResult(Messages.PasswordResetted.Translate());
     }

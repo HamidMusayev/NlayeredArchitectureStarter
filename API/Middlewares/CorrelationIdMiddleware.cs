@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using CORE.Concrete.Observability;
 using Serilog.Context;
 
 namespace API.Middlewares;
@@ -19,7 +20,7 @@ namespace API.Middlewares;
 public class CorrelationIdMiddleware(RequestDelegate next)
 {
     public const string HeaderName = "X-Correlation-Id";
-    private const string LogContextProperty = "CorrelationId";
+    private const string LogContextProperty = CorrelationContext.Key;
 
     public async Task Invoke(HttpContext context)
     {

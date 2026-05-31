@@ -6,6 +6,7 @@ using System.Text;
 using CORE.Abstract;
 using CORE.Config;
 using DTO.User;
+using ENTITIES.Identifiers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 
@@ -24,10 +25,16 @@ public class JwtService(
     IEncryptionService encryptionService)
     : IJwtService
 {
-    public string CreateTokenForUser(UserToListDto userDto, DateTime expirationDate)
+    public IssuedAccessToken CreateTokenForUser(UserToListDto userDto, DateTime expirationDate)
     {
+        // Per-issuance jti — stored on the Token row, embedded in the JWT, used for revocation
+        // lookups. Fresh Guid per issuance: rotation produces a new jti even within the same
+        // family.
+        var jti = Guid.NewGuid();
+
         var claims = new List<Claim>
         {
+            new(JwtRegisteredClaimNames.Jti, jti.ToString()),
             new(configSettings.AuthSettings.TokenUserIdKey, encryptionService.Encrypt(userDto.Id.ToString())),
             new(ClaimTypes.Name, userDto.Username),
             new(configSettings.AuthSettings.Role, userDto.Role?.Name ?? string.Empty),
@@ -46,7 +53,7 @@ public class JwtService(
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        return new IssuedAccessToken(tokenHandler.WriteToken(token), jti);
     }
 
     public string? GetTokenString()
@@ -54,7 +61,16 @@ public class JwtService(
         return context.HttpContext?.Request.Headers[config.AuthSettings.HeaderName].ToString();
     }
 
-    public Guid? GetUserIdFromToken()
+    public Guid? GetJtiFromToken()
+    {
+        var token = GetJwtSecurityToken();
+        if (token is null) return null;
+
+        var claim = token.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti);
+        return Guid.TryParse(claim?.Value, out var jti) ? jti : null;
+    }
+
+    public UserId? GetUserIdFromToken()
     {
         var token = GetJwtSecurityToken();
         if (token == null) return null;
@@ -73,7 +89,7 @@ public class JwtService(
             return null;
         }
 
-        return Guid.TryParse(decrypted, out var userId) ? userId : null;
+        return Guid.TryParse(decrypted, out var userId) ? new UserId(userId) : null;
     }
 
     public bool IsValidToken()

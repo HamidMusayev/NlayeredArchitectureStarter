@@ -20,6 +20,14 @@ public class OutboxMessage : Auditable, IEntity
     /// <summary>JSON-serialized message body.</summary>
     public required string Payload { get; set; }
 
+    /// <summary>
+    ///     Correlation id captured from the originating request at enqueue time. The dispatcher
+    ///     restores it before invoking handlers so log lines and outbound HTTP calls inside the
+    ///     handler share the same id as the request that produced the message. Null = the row
+    ///     was enqueued from a context without a correlation id (e.g. a background job).
+    /// </summary>
+    public string? CorrelationId { get; set; }
+
     /// <summary>When the originating transaction occurred (UTC).</summary>
     public DateTimeOffset OccurredOnUtc { get; set; }
 
@@ -29,6 +37,16 @@ public class OutboxMessage : Auditable, IEntity
     /// <summary>Last error message if the dispatcher tried and failed. Null on success.</summary>
     public string? Error { get; set; }
 
-    /// <summary>Number of attempted publishes. Bumped on failure; lets the dispatcher back off bad rows.</summary>
+    /// <summary>Number of attempted publishes. Bumped on every dispatcher tick that touches the row.</summary>
     public int AttemptCount { get; set; }
+
+    /// <summary>UTC of the most recent dispatcher attempt — null until the dispatcher has touched the row.</summary>
+    public DateTimeOffset? LastAttemptedAt { get; set; }
+
+    /// <summary>
+    ///     UTC the row was dead-lettered. Set by the dispatcher once <see cref="AttemptCount" />
+    ///     crosses <c>MessageBusSettings.OutboxMaxAttempts</c>; the dispatcher then ignores the
+    ///     row. Clear it (via the admin endpoint or a manual UPDATE) to resurrect.
+    /// </summary>
+    public DateTimeOffset? DeadLetteredAt { get; set; }
 }

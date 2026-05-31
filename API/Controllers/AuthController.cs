@@ -8,6 +8,7 @@ using DTO.Responses;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 using IResult = DTO.Responses.IResult;
 
@@ -32,6 +33,7 @@ public class AuthController(
     [Produces(typeof(IDataResult<LoginResponseDto>))]
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromBody] LoginDto request)
     {
         var loginResult = await authService.LoginAsync(request);
@@ -46,6 +48,7 @@ public class AuthController(
     [Produces(typeof(IResult))]
     [HttpGet("otp")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> SendOtp([FromQuery] string email)
     {
         return Ok(await accountRecoveryService.SendOtpAsync(email));
@@ -55,6 +58,7 @@ public class AuthController(
     [Produces(typeof(IDataResult<LoginResponseDto>))]
     [HttpGet("refresh")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Refresh(CancellationToken ct)
     {
         // Rotation deliberately runs without [ValidateToken]: the access token may already
@@ -71,6 +75,7 @@ public class AuthController(
     [SwaggerOperation(Summary = "reset password")]
     [Produces(typeof(IResult))]
     [HttpPost("password/reset")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto request)
     {
         var response = await accountRecoveryService.ResetPasswordAsync(request);
@@ -100,8 +105,10 @@ public class AuthController(
     [ValidateToken]
     public async Task<IActionResult> Logout()
     {
-        var accessToken = jwtService.TrimToken(jwtService.GetTokenString()!);
-        var response = await authService.LogoutAsync(accessToken);
+        // [ValidateToken] just ran and passed, so the JWT is well-formed and the jti is present.
+        var jti = jwtService.GetJtiFromToken()
+                  ?? throw new InvalidOperationException("ValidateToken filter passed but jti is missing.");
+        var response = await authService.LogoutAsync(jti);
 
         return Ok(response);
     }

@@ -1,4 +1,5 @@
 using CORE.Abstract;
+using ENTITIES.Identifiers;
 
 namespace CORE.Concrete;
 
@@ -9,6 +10,6 @@ namespace CORE.Concrete;
 /// </summary>
 public class HttpCurrentUser(IJwtService jwtService) : ICurrentUser
 {
-    public Guid? UserId => jwtService.GetUserIdFromToken();
+    public UserId? UserId => jwtService.GetUserIdFromToken();
     public string? Role => jwtService.GetRoleFromToken();
 }

@@ -16,4 +16,18 @@ public interface IUserRepository : IGenericRepository<User>
     Task<string?> GetUserSaltAsync(string userEmail);
 
     void UpdateUser(User user);
+
+    /// <summary>
+    ///     Returns the permission <c>Key</c> strings the user holds via their assigned role.
+    ///     Empty list if the user has no role or the role has no permissions. Authoritative
+    ///     source for <see cref="BLL.Abstract.IUserPermissionsCache" />.
+    /// </summary>
+    Task<List<string>> GetPermissionKeysAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    ///     Returns the ids of every user currently assigned <paramref name="roleId" />. Used by
+    ///     <c>RoleService</c> to fan permission-cache invalidations when a role's permission set
+    ///     changes.
+    /// </summary>
+    Task<List<Guid>> GetUserIdsByRoleAsync(Guid roleId, CancellationToken ct = default);
 }

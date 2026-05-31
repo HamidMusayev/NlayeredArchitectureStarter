@@ -88,7 +88,7 @@ public static class ObservabilityExtensions
         app.UseMiddleware<CorrelationIdMiddleware>();
 
         app.UseSerilogRequestLogging();
-        
+
         return app;
     }
 }

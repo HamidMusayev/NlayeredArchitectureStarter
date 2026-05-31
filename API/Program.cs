@@ -14,7 +14,6 @@ builder.Services
     // Web / MVC backbone
     .AddApiControllers()
     .AddValidation()
-    .AddAutoMapperProfiles()
 
     // Storage + business
     .AddMultiTenancy()
@@ -84,7 +83,7 @@ app
     .UseJwtAuthentication()
     .UseIdempotency()
     .UseRateLimit()
-    .UseHangfireDashboard()
+    .UseHangfireDashboard(config)
     .UseRealtimeHub()
     .UseGraphQlEndpoints()
     .UseControllers();

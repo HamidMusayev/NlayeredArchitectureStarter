@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using ENTITIES.Entities.Generic;
+using ENTITIES.Identifiers;
 
 namespace ENTITIES.Entities;
 
@@ -13,7 +14,7 @@ public class Organization : Auditable, IEntity
     public required string ShortName { get; set; }
     public required string Address { get; set; }
     public virtual Organization? Parent { get; set; }
-    public Guid? ParentId { get; set; }
+    public OrganizationId? ParentId { get; set; }
     [Phone] public required string PhoneNumber { get; set; }
     [StringLength(10)] public required string Tin { get; set; }
     [EmailAddress] public required string Email { get; set; }

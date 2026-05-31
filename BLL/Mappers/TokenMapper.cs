@@ -1,22 +1,20 @@
-﻿using AutoMapper;
 using DTO.Auth;
-using DTO.Token;
 using ENTITIES.Entities;
+using Riok.Mapperly.Abstractions;
 
 namespace BLL.Mappers;
 
 /// <summary>
-///     AutoMapper profile for <c>Token</c> entity ↔ DTO conversions. Maps the entity to the
-///     list DTO and maps <c>LoginResponseDto</c> → entity, extracting <c>UserId</c> from the
-///     nested user DTO and suppressing the navigation property to avoid double-mapping.
+///     Compile-time mapper for <c>Token</c>. Only the <c>LoginResponseDto</c> → entity direction
+///     is needed — outbound mapping was dropped along with the dead <c>TokenService.GetAsync</c>
+///     path. <c>UserId</c> is projected out of the nested user DTO via <see cref="MapPropertyAttribute" />.
+///     <c>Jti</c> and <c>RefreshTokenHash</c> are set explicitly in <c>TokenService.IssueAsync</c> after
+///     the map runs since the DTO doesn't carry them.
 /// </summary>
-public class TokenMapper : Profile
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TokenMapper
 {
-    public TokenMapper()
-    {
-        CreateMap<Token, TokenToListDto>();
-        CreateMap<LoginResponseDto, Token>()
-            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.User.Id))
-            .ForMember(dest => dest.User, opt => opt.Ignore());
-    }
+    [MapProperty($"{nameof(LoginResponseDto.User)}.{nameof(LoginResponseDto.User.Id)}", nameof(Token.UserId))]
+    [MapperIgnoreTarget(nameof(Token.User))]
+    public partial void UpdateEntity(LoginResponseDto source, Token target);
 }

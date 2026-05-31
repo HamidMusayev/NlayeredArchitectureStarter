@@ -1,5 +1,6 @@
 using DTO.File;
 using DTO.Role;
+using ENTITIES.Identifiers;
 
 namespace DTO.User;
 
@@ -13,7 +14,7 @@ public record UserToAddDto(
     string ContactNumber,
     string Password,
     string PasswordConfirmation,
-    Guid? RoleId
+    RoleId? RoleId
 );
 
 /// <summary>Outbound user representation. Strips the password/salt and embeds role + profile-picture summaries.</summary>
@@ -31,5 +32,5 @@ public record UserToUpdateDto(
     string Email,
     string ContactNumber,
     string Username,
-    Guid? RoleId
+    RoleId? RoleId
 );

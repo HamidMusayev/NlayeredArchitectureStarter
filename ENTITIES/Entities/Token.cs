@@ -1,14 +1,30 @@
 using ENTITIES.Entities.Generic;
+using ENTITIES.Identifiers;
 
 namespace ENTITIES.Entities;
 
 public class Token : Auditable, IEntity
 {
     public virtual required User User { get; set; }
-    public Guid UserId { get; set; }
-    public required string AccessToken { get; set; }
+    public UserId UserId { get; set; }
+
+    /// <summary>
+    ///     JWT <c>jti</c> claim — a per-issuance Guid embedded in the access token. Identifies
+    ///     the token row without ever storing the JWT itself; revocation and validation lookups
+    ///     all key on this. The full JWT lives only on the wire and in the client's possession.
+    /// </summary>
+    public required Guid Jti { get; set; }
+
     public DateTimeOffset AccessTokenExpireDate { get; set; }
-    public required string RefreshToken { get; set; }
+
+    /// <summary>
+    ///     SHA-256 hex digest of the refresh token. Indexed and queried by
+    ///     <c>TokenRepository.GetByRefreshTokenHashAsync</c> — the plaintext refresh token never
+    ///     lands on disk. Clients hold the plaintext (returned once on login via the wire DTO)
+    ///     and send it back on rotation; the server hashes it before lookup.
+    /// </summary>
+    public required string RefreshTokenHash { get; set; }
+
     public DateTimeOffset RefreshTokenExpireDate { get; set; }
 
     /// <summary>

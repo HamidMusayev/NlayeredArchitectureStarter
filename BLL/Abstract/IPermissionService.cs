@@ -1,4 +1,4 @@
-﻿using DAL.EntityFramework.Utility;
+﻿using DTO.Common;
 using DTO.Permission;
 using DTO.Responses;
 
@@ -12,7 +12,7 @@ public interface IPermissionService
 {
     Task<IDataResult<List<PermissionToListDto>>> GetAsync();
 
-    Task<IDataResult<PaginatedList<PermissionToListDto>>> GetAsPaginatedListAsync();
+    Task<IDataResult<PagedResult<PermissionToListDto>>> GetAsPaginatedListAsync();
 
     Task<IDataResult<PermissionToListDto>> GetAsync(Guid id);
 

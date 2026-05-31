@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using CORE.Concrete.Observability;
 using CORE.Config;
 using MESSAGEBUS.Abstract;
 using Microsoft.Extensions.DependencyInjection;
@@ -87,6 +89,11 @@ public sealed class RabbitMqMessageBusConsumer(
         var consumer = new AsyncEventingBasicConsumer(_channel);
         consumer.ReceivedAsync += async (_, args) =>
         {
+            // Per-message activity + correlation restore (mirrors ChannelMessageBusDispatcher).
+            // RabbitMQ's BasicProperties.CorrelationId is the standard slot for this.
+            using var activity = new Activity("messagebus.dispatch.rabbitmq").Start();
+            using var correlationScope = CorrelationContext.Push(args.BasicProperties?.CorrelationId);
+
             try
             {
                 var json = Encoding.UTF8.GetString(args.Body.Span);

@@ -1,4 +1,4 @@
-﻿using DAL.EntityFramework.Utility;
+﻿using DTO.Common;
 using DTO.Responses;
 using DTO.User;
 
@@ -12,7 +12,7 @@ public interface IUserService
 {
     Task<IDataResult<List<UserToListDto>>> GetAsync();
 
-    Task<IDataResult<PaginatedList<UserToListDto>>> GetAsPaginatedListAsync();
+    Task<IDataResult<PagedResult<UserToListDto>>> GetAsPaginatedListAsync();
 
     Task<IDataResult<UserToListDto>> GetAsync(Guid id);
 

@@ -1,3 +1,5 @@
+using ENTITIES.Identifiers;
+
 namespace ENTITIES.Entities.Generic;
 
 /// <summary>
@@ -10,18 +12,19 @@ namespace ENTITIES.Entities.Generic;
 public class Auditable
 {
     public Guid Id { get; set; }
-    public Guid? CreatedById { get; set; }
-    public Guid? ModifiedBy { get; set; }
-    public Guid? DeletedBy { get; set; }
+    public UserId? CreatedById { get; set; }
+    public UserId? ModifiedBy { get; set; }
+    public UserId? DeletedBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? ModifiedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public bool IsDeleted { get; set; }
 
     /// <summary>
-    ///     Owning tenant id. Stamped from <c>ITenant.TenantId</c> on insert and used by
-    ///     <c>DataContext</c>'s global query filter to scope reads to the current tenant.
-    ///     Null = "shared / non-tenant" or an unresolved request.
+    ///     Owning tenant id (strongly-typed wrapper around <see cref="Guid" />). Stamped from
+    ///     <see cref="ENTITIES.Identifiers.TenantId" /> on insert by <c>AuditableInterceptor</c>
+    ///     and used by <c>DataContext</c>'s global query filter to scope reads to the current
+    ///     tenant. Null = "shared / non-tenant" or an unresolved request.
     /// </summary>
-    public Guid? TenantId { get; set; }
+    public TenantId? TenantId { get; set; }
 }
