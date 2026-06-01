@@ -1,5 +1,6 @@
 using CORE.Config;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using STORAGE.Abstract;
 
 namespace STORAGE.Concrete;
@@ -10,14 +11,16 @@ namespace STORAGE.Concrete;
 ///     the fallback in small deployments. Swap to <c>S3BlobStorage</c> when going multi-instance.
 /// </summary>
 public sealed class FilesystemBlobStorage(
-    ConfigSettings config,
+    IOptions<BlobStorageSettings> options,
     IHostEnvironment env) : IBlobStorage
 {
+    private readonly FilesystemBlobSettings _fs = options.Value.Filesystem;
+
     private string Root
     {
         get
         {
-            var configured = config.BlobStorageSettings.Filesystem.RootPath;
+            var configured = _fs.RootPath;
             return Path.IsPathRooted(configured)
                 ? configured
                 : Path.Combine(env.ContentRootPath, configured);

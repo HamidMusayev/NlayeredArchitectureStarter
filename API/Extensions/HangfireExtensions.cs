@@ -13,11 +13,13 @@ namespace API.Extensions;
 /// </summary>
 public static class HangfireExtensions
 {
-    public static IServiceCollection AddHangfireJobs(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddHangfireJobs(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddHangfire(configuration =>
-            configuration.UsePostgreSqlStorage(
-                options => options.UseNpgsqlConnection(config.ConnectionStrings.AppDb),
+        var connections = configuration.GetConfigSection<ConnectionStrings>();
+
+        services.AddHangfire(cfg =>
+            cfg.UsePostgreSqlStorage(
+                options => options.UseNpgsqlConnection(connections.AppDb),
                 new PostgreSqlStorageOptions
                 {
                     SchemaName = "hangfire",
@@ -30,8 +32,12 @@ public static class HangfireExtensions
         return services;
     }
 
-    public static WebApplication UseHangfireDashboard(this WebApplication app, ConfigSettings config)
+    public static WebApplication UseHangfireDashboard(this WebApplication app)
     {
+        var configuration = app.Services.GetRequiredService<IConfiguration>();
+        var auditLog = configuration.GetConfigSection<AuditLogSettings>();
+        var messageBus = configuration.GetConfigSection<MessageBusSettings>();
+
         app.UseHangfireDashboard("/api/hangfire", new DashboardOptions
         {
             Authorization = [new HangfireAuthorizationFilter()]
@@ -47,7 +53,7 @@ public static class HangfireExtensions
         // Daily prune of audit rows past retention. Cron 02:30 UTC — off-peak for most regions.
         RecurringJob.AddOrUpdate<AuditLogPruneJob>(
             "audit-log-prune",
-            job => job.Run(config.AuditLogSettings.RetentionDays, JobCancellationToken.Null),
+            job => job.Run(auditLog.RetentionDays, JobCancellationToken.Null),
             "30 2 * * *",
             new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
@@ -55,7 +61,7 @@ public static class HangfireExtensions
         // audit prune so the two don't compete for the DB lock on a small instance.
         RecurringJob.AddOrUpdate<OutboxCleanupJob>(
             "outbox-cleanup",
-            job => job.Run(config.MessageBusSettings.OutboxRetentionDays, JobCancellationToken.Null),
+            job => job.Run(messageBus.OutboxRetentionDays, JobCancellationToken.Null),
             "45 2 * * *",
             new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 

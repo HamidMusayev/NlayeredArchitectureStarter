@@ -13,14 +13,18 @@ namespace API.Extensions;
 /// </summary>
 public static class DistributedLockExtensions
 {
-    public static IServiceCollection AddDistributedLock(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddDistributedLock(this IServiceCollection services,
+        IConfiguration configuration)
     {
-        switch (config.DistributedLockSettings.Provider)
+        var lockSettings = configuration.GetConfigSection<DistributedLockSettings>();
+        var redis = configuration.GetConfigSection<RedisSettings>();
+
+        switch (lockSettings.Provider)
         {
             case DistributedLockProvider.Redis:
                 services.TryAddSingleton<IConnectionMultiplexer>(_ =>
                     ConnectionMultiplexer.Connect(
-                        config.RedisSettings.Connection.Replace("redis://", string.Empty,
+                        redis.Connection.Replace("redis://", string.Empty,
                             StringComparison.OrdinalIgnoreCase)));
                 services.TryAddSingleton<IDistributedLock, RedisDistributedLock>();
                 break;

@@ -23,27 +23,32 @@ public static class HealthCheckExtensions
 {
     private const string ReadyTag = "ready";
 
-    public static IServiceCollection AddCoreHealthChecks(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddCoreHealthChecks(this IServiceCollection services, IConfiguration configuration)
     {
+        var connections = configuration.GetConfigSection<ConnectionStrings>();
+        var redis = configuration.GetConfigSection<RedisSettings>();
+        var mongo = configuration.GetConfigSection<MongoDbSettings>();
+        var elastic = configuration.GetConfigSection<ElasticSearchSettings>();
+
         var hc = services.AddHealthChecks()
-            .AddNpgSql(config.ConnectionStrings.AppDb, name: "postgres", tags: [ReadyTag])
+            .AddNpgSql(connections.AppDb, name: "postgres", tags: [ReadyTag])
             .AddCheck<PostgresWriteHealthCheck>("postgres-write", tags: [ReadyTag]);
 
-        if (!string.IsNullOrWhiteSpace(config.RedisSettings.Connection))
+        if (!string.IsNullOrWhiteSpace(redis.Connection))
         {
             var redisConn =
-                config.RedisSettings.Connection.Replace("redis://", string.Empty, StringComparison.OrdinalIgnoreCase);
+                redis.Connection.Replace("redis://", string.Empty, StringComparison.OrdinalIgnoreCase);
             hc.AddRedis(redisConn, "redis", tags: [ReadyTag]);
             hc.AddCheck<RedisWriteHealthCheck>("redis-write", tags: [ReadyTag]);
         }
 
-        if (!string.IsNullOrWhiteSpace(config.MongoDbSettings.Connection))
-            hc.AddMongoDb(_ => new MongoClient(config.MongoDbSettings.Connection),
+        if (!string.IsNullOrWhiteSpace(mongo.Connection))
+            hc.AddMongoDb(_ => new MongoClient(mongo.Connection),
                 name: "mongodb",
                 tags: [ReadyTag]);
 
-        if (!string.IsNullOrWhiteSpace(config.ElasticSearchSettings.Connection))
-            hc.AddElasticsearch(config.ElasticSearchSettings.Connection, "elasticsearch", tags: [ReadyTag]);
+        if (!string.IsNullOrWhiteSpace(elastic.Connection))
+            hc.AddElasticsearch(elastic.Connection, "elasticsearch", tags: [ReadyTag]);
 
         return services;
     }

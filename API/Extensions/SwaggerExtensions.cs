@@ -1,4 +1,5 @@
 using CORE.Config;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 
 namespace API.Extensions;
@@ -10,49 +11,54 @@ namespace API.Extensions;
 /// </summary>
 public static class SwaggerExtensions
 {
-    public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services,
+        IConfiguration configuration)
     {
-        if (!config.SwaggerSettings.IsEnabled) return services;
+        var swagger = configuration.GetConfigSection<SwaggerSettings>();
+        var auth = configuration.GetConfigSection<AuthSettings>();
+
+        if (!swagger.IsEnabled) return services;
 
         services.AddSwaggerGen(c =>
         {
             c.EnableAnnotations();
 
-            c.SwaggerDoc(config.SwaggerSettings.Version,
-                new OpenApiInfo { Title = config.SwaggerSettings.Title, Version = config.SwaggerSettings.Version });
+            c.SwaggerDoc(swagger.Version,
+                new OpenApiInfo { Title = swagger.Title, Version = swagger.Version });
 
-            c.AddSecurityDefinition(config.AuthSettings.TokenPrefix, new OpenApiSecurityScheme
+            c.AddSecurityDefinition(auth.TokenPrefix, new OpenApiSecurityScheme
             {
-                Name = config.AuthSettings.HeaderName,
+                Name = auth.HeaderName,
                 Type = SecuritySchemeType.ApiKey,
-                Scheme = config.AuthSettings.TokenPrefix,
-                BearerFormat = config.AuthSettings.Type,
+                Scheme = auth.TokenPrefix,
+                BearerFormat = auth.Type,
                 In = ParameterLocation.Header,
                 Description = "JWT Authorization header using the Bearer scheme."
             });
 
-            c.AddSecurityDefinition(config.AuthSettings.RefreshTokenHeaderName, new OpenApiSecurityScheme
+            c.AddSecurityDefinition(auth.RefreshTokenHeaderName, new OpenApiSecurityScheme
             {
-                Name = config.AuthSettings.RefreshTokenHeaderName,
+                Name = auth.RefreshTokenHeaderName,
                 In = ParameterLocation.Header,
                 Description = "Refresh token header."
             });
 
             c.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
             {
-                { new OpenApiSecuritySchemeReference(config.AuthSettings.TokenPrefix), [] },
-                { new OpenApiSecuritySchemeReference(config.AuthSettings.RefreshTokenHeaderName), [] }
+                { new OpenApiSecuritySchemeReference(auth.TokenPrefix), [] },
+                { new OpenApiSecuritySchemeReference(auth.RefreshTokenHeaderName), [] }
             });
         });
 
         return services;
     }
 
-    public static WebApplication UseSwaggerDocumentation(this WebApplication app, ConfigSettings config)
+    public static WebApplication UseSwaggerDocumentation(this WebApplication app)
     {
-        if (!config.SwaggerSettings.IsEnabled) return app;
+        var swagger = app.Services.GetRequiredService<IOptions<SwaggerSettings>>().Value;
+        if (!swagger.IsEnabled) return app;
         app.UseSwagger();
-        app.UseSwaggerUI(c => c.InjectStylesheet(config.SwaggerSettings.Theme));
+        app.UseSwaggerUI(c => c.InjectStylesheet(swagger.Theme));
         return app;
     }
 }

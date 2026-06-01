@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using CORE.Abstract;
 using CORE.Config;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace CORE.Concrete;
 
@@ -15,17 +17,21 @@ public class Pbkdf2PasswordHasher : IPasswordHasher
 
     /// <summary>
     ///     DI constructor — iteration count is read from <see cref="AuthSettings.PasswordIterations" />.
+    ///     Marked <see cref="ActivatorUtilitiesConstructorAttribute" /> so the container picks
+    ///     this over the <see cref="Pbkdf2PasswordHasher(int)" /> seeder overload without
+    ///     ambiguity.
     /// </summary>
-    public Pbkdf2PasswordHasher(ConfigSettings config)
-        : this(config.AuthSettings.PasswordIterations > 0
-            ? config.AuthSettings.PasswordIterations
+    [ActivatorUtilitiesConstructor]
+    public Pbkdf2PasswordHasher(IOptions<AuthSettings> options)
+        : this(options.Value.PasswordIterations > 0
+            ? options.Value.PasswordIterations
             : DefaultIterations)
     {
     }
 
     /// <summary>
     ///     Direct-iteration overload — useful for seeders / tests / CLI tools that don't have
-    ///     a bound <see cref="ConfigSettings" />. Defaults to the OWASP 2023 floor.
+    ///     bound options. Defaults to the OWASP 2023 floor.
     /// </summary>
     public Pbkdf2PasswordHasher(int iterations = DefaultIterations)
     {

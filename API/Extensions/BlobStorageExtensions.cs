@@ -12,9 +12,11 @@ namespace API.Extensions;
 /// </summary>
 public static class BlobStorageExtensions
 {
-    public static IServiceCollection AddBlobStorage(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddBlobStorage(this IServiceCollection services, IConfiguration configuration)
     {
-        switch (config.BlobStorageSettings.Provider)
+        var settings = configuration.GetConfigSection<BlobStorageSettings>();
+
+        switch (settings.Provider)
         {
             case BlobStorageProvider.S3:
                 services.TryAddSingleton<IBlobStorage, S3BlobStorage>();

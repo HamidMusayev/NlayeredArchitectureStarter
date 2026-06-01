@@ -8,6 +8,7 @@ using CORE.Config;
 using DTO.User;
 using ENTITIES.Identifiers;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CORE.Concrete;
@@ -19,12 +20,13 @@ namespace CORE.Concrete;
 ///     Refresh tokens are 64 random bytes base64-encoded — never JWTs themselves.
 /// </summary>
 public class JwtService(
-    ConfigSettings config,
+    IOptions<AuthSettings> authOptions,
     IHttpContextAccessor context,
-    ConfigSettings configSettings,
     IEncryptionService encryptionService)
     : IJwtService
 {
+    private readonly AuthSettings _auth = authOptions.Value;
+
     public IssuedAccessToken CreateTokenForUser(UserToListDto userDto, DateTime expirationDate)
     {
         // Per-issuance jti — stored on the Token row, embedded in the JWT, used for revocation
@@ -35,13 +37,13 @@ public class JwtService(
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, jti.ToString()),
-            new(configSettings.AuthSettings.TokenUserIdKey, encryptionService.Encrypt(userDto.Id.ToString())),
+            new(_auth.TokenUserIdKey, encryptionService.Encrypt(userDto.Id.ToString())),
             new(ClaimTypes.Name, userDto.Username),
-            new(configSettings.AuthSettings.Role, userDto.Role?.Name ?? string.Empty),
+            new(_auth.Role, userDto.Role?.Name ?? string.Empty),
             new(ClaimTypes.Expiration, expirationDate.ToString(CultureInfo.InvariantCulture))
         };
 
-        var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(configSettings.AuthSettings.SecretKey));
+        var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_auth.SecretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -58,7 +60,7 @@ public class JwtService(
 
     public string? GetTokenString()
     {
-        return context.HttpContext?.Request.Headers[config.AuthSettings.HeaderName].ToString();
+        return context.HttpContext?.Request.Headers[_auth.HeaderName].ToString();
     }
 
     public Guid? GetJtiFromToken()
@@ -75,7 +77,7 @@ public class JwtService(
         var token = GetJwtSecurityToken();
         if (token == null) return null;
 
-        var claim = token.Claims.FirstOrDefault(c => c.Type == config.AuthSettings.TokenUserIdKey);
+        var claim = token.Claims.FirstOrDefault(c => c.Type == _auth.TokenUserIdKey);
         if (claim is null || string.IsNullOrEmpty(claim.Value)) return null;
 
         string decrypted;
@@ -99,7 +101,7 @@ public class JwtService(
         if (string.IsNullOrEmpty(tokenString) || tokenString.Length < 7) return false;
 
         var tokenHandler = new JwtSecurityTokenHandler();
-        var secretKey = Encoding.ASCII.GetBytes(config.AuthSettings.SecretKey);
+        var secretKey = Encoding.ASCII.GetBytes(_auth.SecretKey);
         try
         {
             tokenHandler.ValidateToken(tokenString[7..], new TokenValidationParameters
@@ -141,7 +143,7 @@ public class JwtService(
         var token = GetJwtSecurityToken();
         if (token == null) return null;
 
-        var roleIdClaim = token.Claims.FirstOrDefault(c => c.Type == config.AuthSettings.Role);
+        var roleIdClaim = token.Claims.FirstOrDefault(c => c.Type == _auth.Role);
 
         if (roleIdClaim is null || string.IsNullOrEmpty(roleIdClaim.Value)) return null;
 
@@ -153,7 +155,7 @@ public class JwtService(
         var tokenString = GetTokenString();
 
         if (string.IsNullOrEmpty(tokenString)) return null;
-        return !tokenString.Contains($"{config.AuthSettings.TokenPrefix} ")
+        return !tokenString.Contains($"{_auth.TokenPrefix} ")
             ? null
             : new JwtSecurityToken(tokenString[7..]);
     }

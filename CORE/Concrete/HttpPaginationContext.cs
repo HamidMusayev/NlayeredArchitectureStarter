@@ -2,6 +2,7 @@ using CORE.Abstract;
 using CORE.Config;
 using DTO.Helper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace CORE.Concrete;
 
@@ -10,13 +11,16 @@ namespace CORE.Concrete;
 ///     headers whose names come from <see cref="RequestSettings" />. Allows BLL code to depend
 ///     on a simple pagination abstraction without touching <c>IHttpContextAccessor</c> directly.
 /// </summary>
-public class HttpPaginationContext(ConfigSettings config, IHttpContextAccessor accessor) : IPaginationContext
+public class HttpPaginationContext(IOptions<RequestSettings> options, IHttpContextAccessor accessor)
+    : IPaginationContext
 {
+    private readonly RequestSettings _settings = options.Value;
+
     public PaginationDto GetPagination()
     {
         var headers = accessor.HttpContext?.Request.Headers;
-        var pageIndex = Convert.ToInt32(headers?[config.RequestSettings.PageIndex]);
-        var pageSize = Convert.ToInt32(headers?[config.RequestSettings.PageSize]);
+        var pageIndex = Convert.ToInt32(headers?[_settings.PageIndex]);
+        var pageSize = Convert.ToInt32(headers?[_settings.PageSize]);
 
         return new PaginationDto
         {

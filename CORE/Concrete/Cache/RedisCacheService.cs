@@ -1,6 +1,7 @@
 using System.Text.Json;
 using CORE.Abstract;
 using CORE.Config;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace CORE.Concrete.Cache;
@@ -11,12 +12,13 @@ namespace CORE.Concrete.Cache;
 ///     connection string lives in the existing <see cref="RedisSettings.Connection" /> slot.
 ///     Values are JSON-encoded; key strings are passed through opaquely.
 /// </summary>
-public sealed class RedisCacheService(IConnectionMultiplexer redis, ConfigSettings config) : ICacheService
+public sealed class RedisCacheService(IConnectionMultiplexer redis, IOptions<CacheSettings> options) : ICacheService
 {
+    private readonly CacheSettings _settings = options.Value;
+
     private IDatabase Db => redis.GetDatabase();
 
-    private TimeSpan DefaultTtl =>
-        TimeSpan.FromSeconds(config.CacheSettings.DefaultTtlSeconds);
+    private TimeSpan DefaultTtl => TimeSpan.FromSeconds(_settings.DefaultTtlSeconds);
 
     public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : class
     {

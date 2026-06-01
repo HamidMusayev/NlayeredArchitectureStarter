@@ -8,6 +8,7 @@ using MESSAGEBUS.Abstract;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -26,13 +27,12 @@ namespace MESSAGEBUS.Concrete;
 /// </summary>
 public sealed class RabbitMqMessageBusConsumer(
     IServiceScopeFactory scopeFactory,
-    ConfigSettings config,
+    IOptions<MessageBusSettings> options,
     ILogger<RabbitMqMessageBusConsumer> logger) : BackgroundService
 {
+    private readonly RabbitMqSettings _settings = options.Value.RabbitMq;
     private IChannel? _channel;
     private IConnection? _connection;
-
-    private RabbitMqSettings Settings => config.MessageBusSettings.RabbitMq;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -46,18 +46,18 @@ public sealed class RabbitMqMessageBusConsumer(
 
         var factory = new ConnectionFactory
         {
-            HostName = Settings.HostName,
-            Port = Settings.Port,
-            UserName = Settings.UserName,
-            Password = Settings.Password,
-            VirtualHost = Settings.VirtualHost
+            HostName = _settings.HostName,
+            Port = _settings.Port,
+            UserName = _settings.UserName,
+            Password = _settings.Password,
+            VirtualHost = _settings.VirtualHost
         };
 
         _connection = await factory.CreateConnectionAsync(stoppingToken);
         _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
 
         await _channel.ExchangeDeclareAsync(
-            Settings.ExchangeName,
+            _settings.ExchangeName,
             ExchangeType.Topic,
             true,
             false,
@@ -71,7 +71,7 @@ public sealed class RabbitMqMessageBusConsumer(
     private async Task BindAndConsumeAsync(Type messageType, CancellationToken ct)
     {
         var routingKey = messageType.FullName ?? messageType.Name;
-        var queueName = $"{Settings.QueuePrefix}{routingKey}";
+        var queueName = $"{_settings.QueuePrefix}{routingKey}";
 
         await _channel!.QueueDeclareAsync(
             queueName,
@@ -82,7 +82,7 @@ public sealed class RabbitMqMessageBusConsumer(
 
         await _channel.QueueBindAsync(
             queueName,
-            Settings.ExchangeName,
+            _settings.ExchangeName,
             routingKey,
             cancellationToken: ct);
 

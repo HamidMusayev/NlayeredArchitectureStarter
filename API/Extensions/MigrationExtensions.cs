@@ -1,6 +1,7 @@
 using CORE.Config;
 using DAL.EntityFramework.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace API.Extensions;
 
@@ -12,11 +13,12 @@ namespace API.Extensions;
 /// </summary>
 public static class MigrationExtensions
 {
-    public static WebApplication ApplyPendingMigrationsIfConfigured(this WebApplication app, ConfigSettings config)
+    public static WebApplication ApplyPendingMigrationsIfConfigured(this WebApplication app)
     {
-        if (!config.MigrationSettings.RunOnStartup) return app;
-
         using var scope = app.Services.CreateScope();
+        var settings = scope.ServiceProvider.GetRequiredService<IOptions<MigrationSettings>>().Value;
+        if (!settings.RunOnStartup) return app;
+
         var db = scope.ServiceProvider.GetRequiredService<DataContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Migrations");
 

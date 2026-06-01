@@ -1,4 +1,5 @@
 using CORE.Config;
+using Microsoft.Extensions.Options;
 using Renci.SshNet;
 using STORAGE.Abstract;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
@@ -11,8 +12,10 @@ namespace STORAGE.Concrete;
 ///     details come from <see cref="SftpSettings" />; one short-lived <see cref="SftpClient" />
 ///     is created per operation (no pooling — the call rate for file uploads is low).
 /// </summary>
-public sealed class SftpBlobStorage(ConfigSettings config) : IBlobStorage
+public sealed class SftpBlobStorage(IOptions<BlobStorageSettings> options) : IBlobStorage
 {
+    private readonly SftpSettings _sftp = options.Value.Sftp;
+
     public async Task<string> SaveAsync(
         string container,
         string key,
@@ -79,14 +82,9 @@ public sealed class SftpBlobStorage(ConfigSettings config) : IBlobStorage
 
     private ConnectionInfo GetConnectionInfo()
     {
-        var auth = new PasswordAuthenticationMethod(
-            config.BlobStorageSettings.Sftp.UserName,
-            config.BlobStorageSettings.Sftp.Password);
+        var auth = new PasswordAuthenticationMethod(_sftp.UserName, _sftp.Password);
 
-        return new ConnectionInfo(
-            config.BlobStorageSettings.Sftp.Ip,
-            config.BlobStorageSettings.Sftp.UserName,
-            auth);
+        return new ConnectionInfo(_sftp.Ip, _sftp.UserName, auth);
     }
 
     private static async Task EnsureDirectoryAsync(SftpClient client, string folderPath, CancellationToken ct)

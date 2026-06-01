@@ -9,6 +9,7 @@ using MESSAGEBUS.Abstract;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace OUTBOX.Hosted;
 
@@ -25,16 +26,18 @@ namespace OUTBOX.Hosted;
 /// </summary>
 public sealed class OutboxDispatcherHostedService(
     IServiceScopeFactory scopeFactory,
-    ConfigSettings config,
+    IOptions<MessageBusSettings> options,
     ILogger<OutboxDispatcherHostedService> logger) : BackgroundService
 {
     private static readonly MethodInfo PublishGenericMethod =
         typeof(IMessageBus).GetMethod(nameof(IMessageBus.PublishAsync))!;
 
+    private readonly MessageBusSettings _settings = options.Value;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var poll = TimeSpan.FromSeconds(Math.Max(1, config.MessageBusSettings.OutboxPollIntervalSeconds));
-        var batchSize = Math.Max(1, config.MessageBusSettings.OutboxBatchSize);
+        var poll = TimeSpan.FromSeconds(Math.Max(1, _settings.OutboxPollIntervalSeconds));
+        var batchSize = Math.Max(1, _settings.OutboxBatchSize);
 
         logger.LogInformation("Outbox dispatcher started — poll {Poll}s, batch {Batch}", poll.TotalSeconds, batchSize);
 
@@ -71,7 +74,7 @@ public sealed class OutboxDispatcherHostedService(
         var pending = await repo.GetPendingAsync(batchSize, ct);
         if (pending.Count == 0) return;
 
-        var maxAttempts = config.MessageBusSettings.OutboxMaxAttempts;
+        var maxAttempts = _settings.OutboxMaxAttempts;
 
         foreach (var row in pending)
         {

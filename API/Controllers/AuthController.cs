@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using IResult = DTO.Responses.IResult;
 
@@ -24,11 +25,13 @@ namespace API.Controllers;
 public class AuthController(
     IAuthService authService,
     IAccountRecoveryService accountRecoveryService,
-    ConfigSettings configSettings,
+    IOptions<AuthSettings> authOptions,
     IJwtService jwtService,
     ITokenService tokenService)
     : ControllerBase
 {
+    private readonly AuthSettings _auth = authOptions.Value;
+
     [SwaggerOperation(Summary = "login")]
     [Produces(typeof(IDataResult<LoginResponseDto>))]
     [HttpPost("login")]
@@ -64,7 +67,7 @@ public class AuthController(
         // Rotation deliberately runs without [ValidateToken]: the access token may already
         // be expired, that's why the caller is refreshing. The refresh token alone gates the flow,
         // and RotateAsync handles reuse detection (revokes the whole family on replay).
-        string refreshToken = HttpContext.Request.Headers[configSettings.AuthSettings.RefreshTokenHeaderName]!;
+        string refreshToken = HttpContext.Request.Headers[_auth.RefreshTokenHeaderName]!;
 
         var rotation = await tokenService.RotateAsync(refreshToken, ct);
         if (!rotation.Success) return Unauthorized(rotation);

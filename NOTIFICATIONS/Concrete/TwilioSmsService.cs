@@ -1,4 +1,5 @@
 using CORE.Config;
+using Microsoft.Extensions.Options;
 using NOTIFICATIONS.Abstract;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
@@ -16,9 +17,9 @@ public class TwilioSmsService : ISmsService
 {
     private readonly TwilioSettings _settings;
 
-    public TwilioSmsService(ConfigSettings config)
+    public TwilioSmsService(IOptions<TwilioSettings> options)
     {
-        _settings = config.TwilioSettings;
+        _settings = options.Value;
 
         // TwilioClient is a static singleton inside the SDK; initialize once per process.
         if (!string.IsNullOrWhiteSpace(_settings.AccountSid) && !string.IsNullOrWhiteSpace(_settings.AuthToken))

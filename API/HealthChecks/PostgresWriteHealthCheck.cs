@@ -1,5 +1,6 @@
 using CORE.Config;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace API.HealthChecks;
@@ -12,15 +13,17 @@ namespace API.HealthChecks;
 ///     residue — the temp table is dropped at session close (which connection-pool reuse
 ///     handles via <c>DISCARD TEMP</c>).
 /// </summary>
-public sealed class PostgresWriteHealthCheck(ConfigSettings config) : IHealthCheck
+public sealed class PostgresWriteHealthCheck(IOptions<ConnectionStrings> options) : IHealthCheck
 {
+    private readonly ConnectionStrings _connections = options.Value;
+
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            await using var connection = new NpgsqlConnection(config.ConnectionStrings.AppDb);
+            await using var connection = new NpgsqlConnection(_connections.AppDb);
             await connection.OpenAsync(cancellationToken);
 
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken);

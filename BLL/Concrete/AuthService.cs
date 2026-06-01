@@ -9,6 +9,7 @@ using DTO.Auth;
 using DTO.Responses;
 using DTO.User;
 using ENTITIES.Identifiers;
+using Microsoft.Extensions.Options;
 
 namespace BLL.Concrete;
 
@@ -27,9 +28,11 @@ public class AuthService(
     IJwtService jwtService,
     IPasswordHasher passwordHasher,
     IAuditLog auditLog,
-    ConfigSettings configSettings)
+    IOptions<AuthSettings> authOptions)
     : IAuthService
 {
+    private readonly AuthSettings _authSettings = authOptions.Value;
+
     /// <summary>
     ///     PBKDF2 credential check with consecutive-failure lockout. Every failure returns the
     ///     same generic <c>InvalidUserCredentials</c> message — unknown email, wrong password,
@@ -62,10 +65,10 @@ public class AuthService(
         {
             user.FailedLoginAttempts += 1;
 
-            var max = configSettings.AuthSettings.MaxFailedLoginAttempts;
+            var max = _authSettings.MaxFailedLoginAttempts;
             if (max > 0 && user.FailedLoginAttempts >= max)
                 user.LockedUntil = DateTimeOffset.UtcNow
-                    .AddMinutes(configSettings.AuthSettings.LockoutDurationMinutes);
+                    .AddMinutes(_authSettings.LockoutDurationMinutes);
 
             await unitOfWork.CommitAsync();
             await auditLog.LogAsync("auth.login.failed",

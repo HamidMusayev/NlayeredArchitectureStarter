@@ -1,5 +1,6 @@
 using CORE.Abstract;
 using CORE.Config;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace CORE.Concrete.Locks;
@@ -14,7 +15,8 @@ namespace CORE.Concrete.Locks;
 ///         "one primary Redis, lock isn't life-safety-critical" use case.
 ///     </para>
 /// </summary>
-public sealed class RedisDistributedLock(IConnectionMultiplexer redis, ConfigSettings config) : IDistributedLock
+public sealed class RedisDistributedLock(IConnectionMultiplexer redis, IOptions<DistributedLockSettings> options)
+    : IDistributedLock
 {
     private const string ReleaseScript = @"
 if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -22,6 +24,8 @@ if redis.call('GET', KEYS[1]) == ARGV[1] then
 else
     return 0
 end";
+
+    private readonly DistributedLockSettings _settings = options.Value;
 
     public async Task<ILockHandle?> AcquireAsync(
         string resource,
@@ -32,9 +36,9 @@ end";
         var db = redis.GetDatabase();
         var key = Key(resource);
         var token = Guid.NewGuid().ToString("N");
-        var ttl = lifetime ?? TimeSpan.FromSeconds(config.DistributedLockSettings.DefaultLifetimeSeconds);
+        var ttl = lifetime ?? TimeSpan.FromSeconds(_settings.DefaultLifetimeSeconds);
         var deadline = DateTime.UtcNow +
-                       (wait ?? TimeSpan.FromMilliseconds(config.DistributedLockSettings.DefaultWaitMilliseconds));
+                       (wait ?? TimeSpan.FromMilliseconds(_settings.DefaultWaitMilliseconds));
 
         while (true)
         {

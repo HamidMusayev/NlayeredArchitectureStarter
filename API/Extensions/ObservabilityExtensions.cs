@@ -13,9 +13,10 @@ namespace API.Extensions;
 /// </summary>
 public static class ObservabilityExtensions
 {
-    public static WebApplicationBuilder AddSerilogLogging(this WebApplicationBuilder builder, ConfigSettings config)
+    public static WebApplicationBuilder AddSerilogLogging(this WebApplicationBuilder builder)
     {
-        var settings = config.LoggingSettings;
+        var settings = builder.Configuration.GetConfigSection<LoggingSettings>();
+        var otel = builder.Configuration.GetConfigSection<OpenTelemetrySettings>();
 
         var level = Enum.TryParse<LogEventLevel>(settings.MinimumLevel, true, out var parsed)
             ? parsed
@@ -30,7 +31,7 @@ public static class ObservabilityExtensions
                 .Enrich.FromLogContext()
                 .Enrich.WithMachineName()
                 .Enrich.WithThreadId()
-                .Enrich.WithProperty("Application", config.OpenTelemetrySettings.ServiceName)
+                .Enrich.WithProperty("Application", otel.ServiceName)
                 .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName);
 
             if (settings.WriteToConsole)
@@ -53,9 +54,9 @@ public static class ObservabilityExtensions
     }
 
     public static IServiceCollection AddOpenTelemetryObservability(this IServiceCollection services,
-        ConfigSettings config)
+        IConfiguration configuration)
     {
-        var settings = config.OpenTelemetrySettings;
+        var settings = configuration.GetConfigSection<OpenTelemetrySettings>();
 
         var resourceBuilder = ResourceBuilder.CreateDefault()
             .AddService(settings.ServiceName, serviceVersion: settings.ServiceVersion);
@@ -82,7 +83,7 @@ public static class ObservabilityExtensions
         return services;
     }
 
-    public static WebApplication UseObservability(this WebApplication app, ConfigSettings config)
+    public static WebApplication UseObservability(this WebApplication app)
     {
         // Correlation ID must run before request logging so every log line carries the ID.
         app.UseMiddleware<CorrelationIdMiddleware>();

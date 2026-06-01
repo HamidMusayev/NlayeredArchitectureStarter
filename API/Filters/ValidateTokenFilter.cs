@@ -6,6 +6,7 @@ using DTO.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Options;
 
 namespace API.Filters;
 
@@ -16,10 +17,12 @@ namespace API.Filters;
 ///     short-circuits with 401 on failure. Applied via <see cref="ValidateTokenAttribute" />.
 /// </summary>
 public class ValidateTokenFilter(
-    ConfigSettings configSettings,
+    IOptions<AuthSettings> authOptions,
     ITokenService tokenService,
     IJwtService jwtService) : IAsyncAuthorizationFilter
 {
+    private readonly AuthSettings _auth = authOptions.Value;
+
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var hasAllowAnonymous = context.ActionDescriptor.EndpointMetadata
@@ -35,7 +38,7 @@ public class ValidateTokenFilter(
         }
 
         string? refreshToken = context.HttpContext.Request
-            .Headers[configSettings.AuthSettings.RefreshTokenHeaderName];
+            .Headers[_auth.RefreshTokenHeaderName];
 
         var validationResult = await tokenService.CheckValidationAsync(jti.Value, refreshToken!);
 

@@ -1,5 +1,6 @@
 using CORE.Config;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace API.HealthChecks;
@@ -10,15 +11,17 @@ namespace API.HealthChecks;
 ///     against a replica that's been demoted to read-only. The 5 s key TTL is belt-and-braces
 ///     for the case where <c>DEL</c> itself fails — Redis cleans up shortly anyway.
 /// </summary>
-public sealed class RedisWriteHealthCheck(ConfigSettings config) : IHealthCheck
+public sealed class RedisWriteHealthCheck(IOptions<RedisSettings> options) : IHealthCheck
 {
     private const string ProbeKey = "healthcheck:probe";
+
+    private readonly RedisSettings _settings = options.Value;
 
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
-        var connectionString = config.RedisSettings.Connection?.Replace(
+        var connectionString = _settings.Connection?.Replace(
             "redis://", string.Empty, StringComparison.OrdinalIgnoreCase);
 
         if (string.IsNullOrWhiteSpace(connectionString))

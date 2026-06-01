@@ -1,9 +1,14 @@
 namespace CORE.Config;
 
 /// <summary>
-///     Root configuration aggregate — every per-feature settings record hangs off this one
-///     record. Bound from <c>appsettings.json</c> under the <c>ConfigSettings</c> section via
-///     <c>IConfiguration.LoadConfigSettings()</c> and registered as a singleton in DI.
+///     Documentation-only aggregate that lists every per-feature settings record bound under
+///     the <c>ConfigSettings</c> root in <c>appsettings.*.json</c>. <b>Not registered in DI</b>
+///     and never injected directly — runtime services depend on <see cref="IOptions{T}" /> for
+///     the slice they need (e.g. <c>IOptions&lt;AuthSettings&gt;</c>). Bindings are wired up
+///     by <c>services.AddConfigOptions(IConfiguration)</c> in <c>CoreServicesExtensions</c>;
+///     the startup-time helper <c>IConfiguration.GetConfigSection&lt;T&gt;()</c> covers the
+///     few <c>API/Extensions/*.cs</c> branches that inspect a value before any DI scope exists.
+///     This type is kept as a single place to discover what's configurable.
 /// </summary>
 public record ConfigSettings
 {

@@ -1,14 +1,13 @@
 using API.Extensions;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load ConfigSettings once; share via DI singleton + as a local for the fluent registrations below.
-var config = builder.Configuration.LoadConfigSettings();
-builder.Services.TryAddSingleton(config);
+// Bind every per-feature settings record under ConfigSettings into the DI options system.
+// Runtime services then depend on IOptions<XSettings> for just the slice they need.
+builder.Services.AddConfigOptions(builder.Configuration);
 
 // Host-level observability install (Serilog hooks into the host).
-builder.AddSerilogLogging(config);
+builder.AddSerilogLogging();
 
 builder.Services
     // Web / MVC backbone
@@ -17,42 +16,42 @@ builder.Services
 
     // Storage + business
     .AddMultiTenancy()
-    .AddEntityFramework(config)
+    .AddEntityFramework(builder.Configuration)
     .AddMongoDb()
-    .AddElasticSearch(config)
+    .AddElasticSearch()
     .AddCoreServices()
     .AddBusinessServices()
 
     // Cross-cutting abstractions (provider-switched via config)
-    .AddCaching(config)
-    .AddRedisOm(config)
-    .AddBlobStorage(config)
-    .AddMessageBus(config)
+    .AddCaching(builder.Configuration)
+    .AddRedisOm(builder.Configuration)
+    .AddBlobStorage(builder.Configuration)
+    .AddMessageBus(builder.Configuration)
     .AddOutbox()
     .AddBackgroundQueue()
     .AddEmailTemplating()
     .AddNotifications()
-    .AddIdempotency(config)
-    .AddFeatureFlags(config)
-    .AddDistributedLock(config)
+    .AddIdempotency(builder.Configuration)
+    .AddFeatureFlags(builder.Configuration)
+    .AddDistributedLock(builder.Configuration)
 
     // Networking + cross-cutting middleware setup
     .AddRateLimit()
     .AddCorsPolicy()
-    .AddJwtAuthentication(config)
+    .AddJwtAuthentication(builder.Configuration)
     .AddCoreProblemDetails()
-    .AddCoreHealthChecks(config)
-    .AddOpenTelemetryObservability(config)
+    .AddCoreHealthChecks(builder.Configuration)
+    .AddOpenTelemetryObservability(builder.Configuration)
 
     // API surfaces
-    .AddSwaggerDocumentation(config)
+    .AddSwaggerDocumentation(builder.Configuration)
     .AddApiVersioningRules()
     .AddRealtimeHub()
     .AddGraphQlSchema()
 
     // Background + integration
-    .AddHangfireJobs(config)
-    .AddRefitHttpClients(config)
+    .AddHangfireJobs(builder.Configuration)
+    .AddRefitHttpClients(builder.Configuration)
     .AddMediatrHandlers()
     .AddMiniProfilerTools()
     .AddIisServerLimits();
@@ -60,14 +59,14 @@ builder.Services
 var app = builder.Build();
 
 // Pending EF migrations (when MigrationSettings.RunOnStartup = true).
-app.ApplyPendingMigrationsIfConfigured(config);
+app.ApplyPendingMigrationsIfConfigured();
 
 // Pipeline — order matters. Earlier middlewares wrap later ones.
 app
-    .UseSwaggerDocumentation(config)
+    .UseSwaggerDocumentation()
     // Correlation ID + Serilog request log must come before exception handling so error logs
     // carry the ID. Observability bundles both.
-    .UseObservability(config)
+    .UseObservability()
     // ProblemDetails-shaped exception handler wraps everything below.
     .UseProblemDetailsExceptions()
     .UseCorsPolicy()
@@ -83,7 +82,7 @@ app
     .UseJwtAuthentication()
     .UseIdempotency()
     .UseRateLimit()
-    .UseHangfireDashboard(config)
+    .UseHangfireDashboard()
     .UseRealtimeHub()
     .UseGraphQlEndpoints()
     .UseControllers();

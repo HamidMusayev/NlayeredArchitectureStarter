@@ -1,6 +1,7 @@
 using API.Attributes;
 using CORE.Abstract;
 using CORE.Config;
+using Microsoft.Extensions.Options;
 
 namespace API.Middlewares;
 
@@ -23,8 +24,13 @@ namespace API.Middlewares;
 ///         so a key reused across different endpoints can't accidentally collide.
 ///     </para>
 /// </summary>
-public sealed class IdempotencyMiddleware(RequestDelegate next, IIdempotencyStore store, ConfigSettings config)
+public sealed class IdempotencyMiddleware(
+    RequestDelegate next,
+    IIdempotencyStore store,
+    IOptions<IdempotencySettings> options)
 {
+    private readonly IdempotencySettings _settings = options.Value;
+
     public async Task Invoke(HttpContext context)
     {
         var endpoint = context.GetEndpoint();
@@ -35,7 +41,7 @@ public sealed class IdempotencyMiddleware(RequestDelegate next, IIdempotencyStor
             return;
         }
 
-        var headerName = config.IdempotencySettings.HeaderName;
+        var headerName = _settings.HeaderName;
         var keyValue = context.Request.Headers[headerName].ToString();
         if (string.IsNullOrWhiteSpace(keyValue))
         {
@@ -72,7 +78,7 @@ public sealed class IdempotencyMiddleware(RequestDelegate next, IIdempotencyStor
             // Only cache 2xx outcomes — error replies stay non-idempotent so the client can retry.
             if (context.Response.StatusCode is >= 200 and < 300)
             {
-                var ttl = TimeSpan.FromMinutes(Math.Max(1, config.IdempotencySettings.TtlMinutes));
+                var ttl = TimeSpan.FromMinutes(Math.Max(1, _settings.TtlMinutes));
                 await store.SetAsync(scopedKey,
                     new IdempotentResponse(context.Response.StatusCode, context.Response.ContentType, bytes),
                     ttl, ct);

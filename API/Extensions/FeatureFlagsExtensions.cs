@@ -12,9 +12,11 @@ namespace API.Extensions;
 /// </summary>
 public static class FeatureFlagsExtensions
 {
-    public static IServiceCollection AddFeatureFlags(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddFeatureFlags(this IServiceCollection services, IConfiguration configuration)
     {
-        switch (config.FeatureFlagSettings.Provider)
+        var settings = configuration.GetConfigSection<FeatureFlagSettings>();
+
+        switch (settings.Provider)
         {
             case FeatureFlagProvider.LaunchDarkly:
                 services.TryAddSingleton<IFeatureFlagService, LaunchDarklyFeatureFlagService>();

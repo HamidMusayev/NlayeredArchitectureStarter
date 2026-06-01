@@ -1,6 +1,7 @@
 using CORE.Abstract;
 using CORE.Config;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace CORE.Concrete.FeatureFlags;
 
@@ -9,11 +10,14 @@ namespace CORE.Concrete.FeatureFlags;
 ///     Zero infrastructure. Per-user evaluation collapses to the global flag value (the config
 ///     store doesn't carry targeting metadata) — switch to LaunchDarkly when you need cohorts.
 /// </summary>
-public sealed class ConfigFeatureFlagService(IConfiguration configuration, ConfigSettings config) : IFeatureFlagService
+public sealed class ConfigFeatureFlagService(IConfiguration configuration, IOptions<FeatureFlagSettings> options)
+    : IFeatureFlagService
 {
+    private readonly FeatureFlagSettings _settings = options.Value;
+
     public Task<bool> IsEnabledAsync(string flag, CancellationToken ct = default)
     {
-        var path = $"{config.FeatureFlagSettings.FlagsSection}:{flag}";
+        var path = $"{_settings.FlagsSection}:{flag}";
         var raw = configuration[path];
         return Task.FromResult(bool.TryParse(raw, out var value) && value);
     }

@@ -1,5 +1,6 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using CORE.Config;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 namespace DAL.MongoDb;
@@ -15,10 +16,11 @@ public class MongoDbService : IMongoDbService
     private readonly IMongoClient _client;
     private IMongoDatabase _database;
 
-    public MongoDbService(ConfigSettings configSettings)
+    public MongoDbService(IOptions<MongoDbSettings> options)
     {
-        _client = new MongoClient(configSettings.MongoDbSettings.Connection);
-        _database = _client.GetDatabase(configSettings.MongoDbSettings.Database);
+        var settings = options.Value;
+        _client = new MongoClient(settings.Connection);
+        _database = _client.GetDatabase(settings.Database);
     }
 
     public void ChangeDatabase(string database)

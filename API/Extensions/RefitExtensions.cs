@@ -33,14 +33,17 @@ namespace API.Extensions;
 /// </summary>
 public static class RefitExtensions
 {
-    public static IServiceCollection AddRefitHttpClients(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddRefitHttpClients(this IServiceCollection services,
+        IConfiguration configuration)
     {
+        var toDo = configuration.GetConfigSection<ToDoClientSettings>();
+
         // Transient handler so every Refit client picks up the per-request HttpContextAccessor scope.
         services.AddTransient<CorrelationIdDelegatingHandler>();
 
         services
             .AddRefitClient<IToDoClient>()
-            .ConfigureHttpClient(c => c.BaseAddress = new Uri(config.ToDoClientSettings.BaseUrl))
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(toDo.BaseUrl))
             .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
             .AddStandardResilienceHandler(ConfigureStandardResilience);
 

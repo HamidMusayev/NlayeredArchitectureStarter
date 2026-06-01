@@ -14,7 +14,7 @@ namespace API.Extensions;
 /// </summary>
 public static class CachingExtensions
 {
-    public static IServiceCollection AddCaching(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddCaching(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOutputCache(options =>
             options.AddBasePolicy(builder => builder.Expire(TimeSpan.FromMinutes(2))));
@@ -24,13 +24,16 @@ public static class CachingExtensions
         // Token introspection cache — fronts the Tokens table for per-request validation.
         services.TryAddSingleton<ITokenIntrospectionCache, TokenIntrospectionCache>();
 
+        var cache = configuration.GetConfigSection<CacheSettings>();
+        var redis = configuration.GetConfigSection<RedisSettings>();
+
         // Vendor-neutral ICacheService — switchable via CacheSettings.Provider.
-        switch (config.CacheSettings.Provider)
+        switch (cache.Provider)
         {
             case CacheProvider.Redis:
                 services.TryAddSingleton<IConnectionMultiplexer>(_ =>
                     ConnectionMultiplexer.Connect(
-                        config.RedisSettings.Connection.Replace("redis://", string.Empty,
+                        redis.Connection.Replace("redis://", string.Empty,
                             StringComparison.OrdinalIgnoreCase)));
                 services.TryAddSingleton<ICacheService, RedisCacheService>();
                 break;

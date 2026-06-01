@@ -2,6 +2,7 @@ using CORE.Config;
 using DAL.ElasticSearch;
 using DTO.User;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace API.Extensions;
 
@@ -13,14 +14,13 @@ namespace API.Extensions;
 /// </summary>
 public static class ElasticSearchExtensions
 {
-    public static IServiceCollection AddElasticSearch(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddElasticSearch(this IServiceCollection services)
     {
-        services.TryAddScoped<IElasticSearchService<UserToListDto>>(_ =>
-            new ElasticSearchService<UserToListDto>(
-                config.ElasticSearchSettings.Connection,
-                config.ElasticSearchSettings.DefaultIndex,
-                config.ElasticSearchSettings.Username,
-                config.ElasticSearchSettings.Password));
+        services.TryAddScoped<IElasticSearchService<UserToListDto>>(sp =>
+        {
+            var s = sp.GetRequiredService<IOptions<ElasticSearchSettings>>().Value;
+            return new ElasticSearchService<UserToListDto>(s.Connection, s.DefaultIndex, s.Username, s.Password);
+        });
 
         return services;
     }

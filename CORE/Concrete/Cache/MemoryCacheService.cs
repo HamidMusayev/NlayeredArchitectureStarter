@@ -1,6 +1,7 @@
 using CORE.Abstract;
 using CORE.Config;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 
 namespace CORE.Concrete.Cache;
 
@@ -10,11 +11,13 @@ namespace CORE.Concrete.Cache;
 ///     and dev/CI; flip to <see cref="RedisCacheService" /> when running multiple instances so
 ///     invalidations propagate.
 /// </summary>
-public sealed class MemoryCacheService(IMemoryCache cache, ConfigSettings config) : ICacheService
+public sealed class MemoryCacheService(IMemoryCache cache, IOptions<CacheSettings> options) : ICacheService
 {
+    private readonly CacheSettings _settings = options.Value;
+
     private TimeSpan? DefaultTtl =>
-        config.CacheSettings.DefaultTtlSeconds > 0
-            ? TimeSpan.FromSeconds(config.CacheSettings.DefaultTtlSeconds)
+        _settings.DefaultTtlSeconds > 0
+            ? TimeSpan.FromSeconds(_settings.DefaultTtlSeconds)
             : null;
 
     public Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : class
@@ -25,12 +28,12 @@ public sealed class MemoryCacheService(IMemoryCache cache, ConfigSettings config
 
     public Task SetAsync<T>(string key, T value, TimeSpan? ttl = null, CancellationToken ct = default) where T : class
     {
-        var options = new MemoryCacheEntryOptions();
+        var opts = new MemoryCacheEntryOptions();
         var effective = ttl ?? DefaultTtl;
         if (effective is { } span && span > TimeSpan.Zero)
-            options.AbsoluteExpirationRelativeToNow = span;
+            opts.AbsoluteExpirationRelativeToNow = span;
 
-        cache.Set(key, value, options);
+        cache.Set(key, value, opts);
         return Task.CompletedTask;
     }
 

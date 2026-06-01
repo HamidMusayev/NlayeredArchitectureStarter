@@ -2,13 +2,14 @@ using System.Text.Json;
 using CORE.Concrete.Observability;
 using CORE.Config;
 using MESSAGEBUS.Abstract;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
 namespace MESSAGEBUS.Concrete;
 
 /// <summary>
 ///     RabbitMQ-backed publish path. Messages serialized as JSON and published to a topic
-///     exchange (<see cref="MessageBusSettings.RabbitMq" />.<c>ExchangeName</c>) with the
+///     exchange (<see cref="MessageBus_settings.RabbitMq" />.<c>ExchangeName</c>) with the
 ///     CLR type's full name as the routing key. The subscribing side lives in
 ///     <c>RabbitMqMessageBusConsumer</c>.
 ///     <para>
@@ -16,13 +17,12 @@ namespace MESSAGEBUS.Concrete;
 ///         connections are heavyweight; channels are cheap but the consumer needs its own.
 ///     </para>
 /// </summary>
-public sealed class RabbitMqMessageBus(ConfigSettings config) : IMessageBus, IAsyncDisposable
+public sealed class RabbitMqMessageBus(IOptions<MessageBusSettings> options) : IMessageBus, IAsyncDisposable
 {
     private readonly SemaphoreSlim _initLock = new(1, 1);
+    private readonly RabbitMqSettings _settings = options.Value.RabbitMq;
     private IChannel? _channel;
     private IConnection? _connection;
-
-    private RabbitMqSettings Settings => config.MessageBusSettings.RabbitMq;
 
     public async ValueTask DisposeAsync()
     {
@@ -52,7 +52,7 @@ public sealed class RabbitMqMessageBus(ConfigSettings config) : IMessageBus, IAs
         };
 
         await _channel!.BasicPublishAsync(
-            Settings.ExchangeName,
+            _settings.ExchangeName,
             routingKey,
             false,
             props,
@@ -70,18 +70,18 @@ public sealed class RabbitMqMessageBus(ConfigSettings config) : IMessageBus, IAs
 
             var factory = new ConnectionFactory
             {
-                HostName = Settings.HostName,
-                Port = Settings.Port,
-                UserName = Settings.UserName,
-                Password = Settings.Password,
-                VirtualHost = Settings.VirtualHost
+                HostName = _settings.HostName,
+                Port = _settings.Port,
+                UserName = _settings.UserName,
+                Password = _settings.Password,
+                VirtualHost = _settings.VirtualHost
             };
 
             _connection = await factory.CreateConnectionAsync(ct);
             _channel = await _connection.CreateChannelAsync(cancellationToken: ct);
 
             await _channel.ExchangeDeclareAsync(
-                Settings.ExchangeName,
+                _settings.ExchangeName,
                 ExchangeType.Topic,
                 true,
                 false,

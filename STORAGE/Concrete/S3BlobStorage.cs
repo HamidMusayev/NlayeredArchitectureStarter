@@ -4,6 +4,7 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 using CORE.Config;
+using Microsoft.Extensions.Options;
 using STORAGE.Abstract;
 
 namespace STORAGE.Concrete;
@@ -21,15 +22,15 @@ namespace STORAGE.Concrete;
 public sealed class S3BlobStorage : IBlobStorage, IDisposable
 {
     private readonly Lazy<IAmazonS3> _client;
-    private readonly ConfigSettings _config;
+    private readonly S3BlobSettings _settings;
 
-    public S3BlobStorage(ConfigSettings config)
+    public S3BlobStorage(IOptions<BlobStorageSettings> options)
     {
-        _config = config;
+        _settings = options.Value.S3;
         _client = new Lazy<IAmazonS3>(BuildClient);
     }
 
-    private string Bucket => _config.BlobStorageSettings.S3.BucketName;
+    private string Bucket => _settings.BucketName;
 
     public async Task<string> SaveAsync(
         string container,
@@ -105,7 +106,7 @@ public sealed class S3BlobStorage : IBlobStorage, IDisposable
 
     private IAmazonS3 BuildClient()
     {
-        var s = _config.BlobStorageSettings.S3;
+        var s = _settings;
         var credentials = new BasicAWSCredentials(s.AccessKey, s.SecretKey);
 
         var s3Config = new AmazonS3Config

@@ -15,9 +15,11 @@ namespace API.Extensions;
 /// </summary>
 public static class RedisOmExtensions
 {
-    public static IServiceCollection AddRedisOm(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddRedisOm(this IServiceCollection services, IConfiguration configuration)
     {
-        services.TryAddSingleton(new RedisConnectionProvider(config.RedisSettings.Connection));
+        var redis = configuration.GetConfigSection<RedisSettings>();
+
+        services.TryAddSingleton(new RedisConnectionProvider(redis.Connection));
         services.TryAddScoped<IPersonRepository, PersonRepository>();
         services.AddHostedService<RedisIndexCreatorService>();
         return services;

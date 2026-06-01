@@ -14,8 +14,11 @@ namespace API.Extensions;
 /// </summary>
 public static class AuthExtensions
 {
-    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services,
+        IConfiguration configuration)
     {
+        var auth = configuration.GetConfigSection<AuthSettings>();
+
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
@@ -23,7 +26,7 @@ public static class AuthExtensions
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey =
-                        new SymmetricSecurityKey(Encoding.ASCII.GetBytes(config.AuthSettings.SecretKey)),
+                        new SymmetricSecurityKey(Encoding.ASCII.GetBytes(auth.SecretKey)),
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ValidateLifetime = true,

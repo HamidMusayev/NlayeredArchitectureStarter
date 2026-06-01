@@ -2,6 +2,7 @@ using CORE.Abstract;
 using CORE.Config;
 using LaunchDarkly.Sdk;
 using LaunchDarkly.Sdk.Server;
+using Microsoft.Extensions.Options;
 
 namespace CORE.Concrete.FeatureFlags;
 
@@ -20,9 +21,9 @@ public sealed class LaunchDarklyFeatureFlagService : IFeatureFlagService, IDispo
     private readonly LdClient _client;
     private readonly bool _defaultValue;
 
-    public LaunchDarklyFeatureFlagService(ConfigSettings config)
+    public LaunchDarklyFeatureFlagService(IOptions<FeatureFlagSettings> options)
     {
-        var settings = config.FeatureFlagSettings.LaunchDarkly;
+        var settings = options.Value.LaunchDarkly;
         _defaultValue = settings.DefaultValue;
 
         var ldConfig = Configuration.Builder(settings.SdkKey)

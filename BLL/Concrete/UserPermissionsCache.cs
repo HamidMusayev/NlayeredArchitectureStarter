@@ -3,6 +3,7 @@ using CORE.Abstract;
 using CORE.Config;
 using DAL.EntityFramework.Abstract;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace BLL.Concrete;
 
@@ -20,14 +21,16 @@ namespace BLL.Concrete;
 public sealed class UserPermissionsCache(
     ICacheService cache,
     IUserRepository userRepository,
-    ConfigSettings configSettings,
+    IOptions<CacheSettings> cacheOptions,
     ILogger<UserPermissionsCache> logger)
     : IUserPermissionsCache
 {
+    private readonly CacheSettings _cacheSettings = cacheOptions.Value;
+
     public async Task<IReadOnlySet<string>> GetAsync(Guid userId, CancellationToken ct = default)
     {
         var key = Key(userId);
-        var ttl = TimeSpan.FromMinutes(Math.Max(1, configSettings.CacheSettings.UserPermissionsTtlMinutes));
+        var ttl = TimeSpan.FromMinutes(Math.Max(1, _cacheSettings.UserPermissionsTtlMinutes));
 
         try
         {

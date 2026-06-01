@@ -5,6 +5,7 @@ using DAL.EntityFramework.Interceptors;
 using DAL.EntityFramework.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace API.Extensions;
 
@@ -17,7 +18,7 @@ namespace API.Extensions;
 /// </summary>
 public static class EntityFrameworkExtensions
 {
-    public static IServiceCollection AddEntityFramework(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddEntityFramework(this IServiceCollection services, IConfiguration configuration)
     {
         // Interceptors are scoped so they can capture the per-request ICurrentUser / ITenant.
         services.TryAddScoped<SoftDeleteInterceptor>();
@@ -25,7 +26,8 @@ public static class EntityFrameworkExtensions
 
         services.AddDbContext<DataContext>((sp, options) =>
         {
-            options.UseNpgsql(config.ConnectionStrings.AppDb);
+            var connections = sp.GetRequiredService<IOptions<ConnectionStrings>>().Value;
+            options.UseNpgsql(connections.AppDb);
             // Order matters: SoftDelete rewrites Deleted → Modified with IsDeleted=true; the
             // Auditable pass then sees Modified and stamps DeletedAt/DeletedBy.
             options.AddInterceptors(

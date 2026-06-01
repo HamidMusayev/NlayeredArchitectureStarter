@@ -2,6 +2,7 @@ using System.IO.Hashing;
 using System.Text;
 using CORE.Abstract;
 using CORE.Config;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace CORE.Concrete.Locks;
@@ -20,8 +21,13 @@ namespace CORE.Concrete.Locks;
 ///         you can with a forgotten Redis key.
 ///     </para>
 /// </summary>
-public sealed class PostgresAdvisoryLock(ConfigSettings config) : IDistributedLock
+public sealed class PostgresAdvisoryLock(
+    IOptions<ConnectionStrings> connectionOptions,
+    IOptions<DistributedLockSettings> lockOptions) : IDistributedLock
 {
+    private readonly ConnectionStrings _connections = connectionOptions.Value;
+    private readonly DistributedLockSettings _lockSettings = lockOptions.Value;
+
     public async Task<ILockHandle?> AcquireAsync(
         string resource,
         TimeSpan? wait = null,
@@ -30,13 +36,13 @@ public sealed class PostgresAdvisoryLock(ConfigSettings config) : IDistributedLo
     {
         // lifetime is ignored — pg releases on session end. Pass-through to satisfy contract.
         var key = HashToBigint(resource);
-        var connection = new NpgsqlConnection(config.ConnectionStrings.AppDb);
+        var connection = new NpgsqlConnection(_connections.AppDb);
         try
         {
             await connection.OpenAsync(ct);
 
             var deadline = DateTime.UtcNow +
-                           (wait ?? TimeSpan.FromMilliseconds(config.DistributedLockSettings.DefaultWaitMilliseconds));
+                           (wait ?? TimeSpan.FromMilliseconds(_lockSettings.DefaultWaitMilliseconds));
 
             while (true)
             {

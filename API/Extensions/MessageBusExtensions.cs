@@ -13,9 +13,11 @@ namespace API.Extensions;
 /// </summary>
 public static class MessageBusExtensions
 {
-    public static IServiceCollection AddMessageBus(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddMessageBus(this IServiceCollection services, IConfiguration configuration)
     {
-        switch (config.MessageBusSettings.Provider)
+        var settings = configuration.GetConfigSection<MessageBusSettings>();
+
+        switch (settings.Provider)
         {
             case MessageBusProvider.RabbitMq:
                 services.TryAddSingleton<IMessageBus, RabbitMqMessageBus>();

@@ -10,6 +10,7 @@ using DTO.Auth;
 using DTO.Responses;
 using DTO.User;
 using ENTITIES.Entities;
+using Microsoft.Extensions.Options;
 
 namespace BLL.Concrete;
 
@@ -26,7 +27,8 @@ namespace BLL.Concrete;
 ///     </para>
 /// </summary>
 public class TokenService(
-    ConfigSettings configSettings,
+    IOptions<AuthSettings> authOptions,
+    IOptions<CacheSettings> cacheOptions,
     ITokenRepository tokenRepository,
     ITokenIntrospectionCache introspectionCache,
     IUnitOfWork unitOfWork,
@@ -35,6 +37,9 @@ public class TokenService(
     TokenMapper tokenMapper)
     : ITokenService
 {
+    private readonly AuthSettings _authSettings = authOptions.Value;
+    private readonly CacheSettings _cacheSettings = cacheOptions.Value;
+
     public async Task<IResult> AddAsync(LoginResponseDto responseDto)
     {
         // External callers handing us a pre-formed DTO can't supply the jti (it lived inside
@@ -165,10 +170,10 @@ public class TokenService(
     private async Task<(LoginResponseDto Dto, Guid Jti)> IssueAsync(UserToListDto user, Guid familyId)
     {
         var now = DateTime.UtcNow;
-        var accessTokenExpireDate = now.AddMinutes(configSettings.AuthSettings.AccessTokenLifetimeMinutes);
+        var accessTokenExpireDate = now.AddMinutes(_authSettings.AccessTokenLifetimeMinutes);
         // Refresh lifetime is absolute (from now), not "access expire + N" — the latter would
         // tie the two together and defeat the point of long-lived refresh + short-lived access.
-        var refreshExpireDate = now.AddMinutes(configSettings.AuthSettings.RefreshTokenLifetimeMinutes);
+        var refreshExpireDate = now.AddMinutes(_authSettings.RefreshTokenLifetimeMinutes);
 
         var issued = jwtService.CreateTokenForUser(user, accessTokenExpireDate);
 
@@ -212,7 +217,7 @@ public class TokenService(
     private TimeSpan CacheTtl(DateTimeOffset accessTokenExpireDate)
     {
         var remaining = accessTokenExpireDate - DateTimeOffset.UtcNow;
-        var grace = TimeSpan.FromSeconds(configSettings.CacheSettings.TokenCacheGraceSeconds);
+        var grace = TimeSpan.FromSeconds(_cacheSettings.TokenCacheGraceSeconds);
         var total = remaining + grace;
         return total > TimeSpan.Zero ? total : TimeSpan.Zero;
     }

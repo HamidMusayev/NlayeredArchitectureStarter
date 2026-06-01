@@ -15,14 +15,17 @@ namespace API.Extensions;
 /// </summary>
 public static class IdempotencyExtensions
 {
-    public static IServiceCollection AddIdempotency(this IServiceCollection services, ConfigSettings config)
+    public static IServiceCollection AddIdempotency(this IServiceCollection services, IConfiguration configuration)
     {
-        switch (config.IdempotencySettings.Provider)
+        var idempotency = configuration.GetConfigSection<IdempotencySettings>();
+        var redis = configuration.GetConfigSection<RedisSettings>();
+
+        switch (idempotency.Provider)
         {
             case IdempotencyProvider.Redis:
                 services.TryAddSingleton<IConnectionMultiplexer>(_ =>
                     ConnectionMultiplexer.Connect(
-                        config.RedisSettings.Connection.Replace("redis://", string.Empty,
+                        redis.Connection.Replace("redis://", string.Empty,
                             StringComparison.OrdinalIgnoreCase)));
                 services.TryAddSingleton<IIdempotencyStore, RedisIdempotencyStore>();
                 break;
